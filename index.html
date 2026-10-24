@@ -414,7 +414,7 @@ body.mobile #hSkillRow{display:none}
 <div class="screen" id="menu">
   <div class="menu-col">
     <div class="eyebrow">Signal-Null · Social Deduction</div>
-    <h1 class="title">ACT<br><em>NORMAL</em><span class="ver">ver 3.2</span></h1>
+    <h1 class="title">ACT<br><em>NORMAL</em><span class="ver">ver 3.3</span></h1>
     <p class="tagline">辦公室裡人來人往，其中幾個人跟你一樣，是<b>假裝成 NPC 的玩家</b>。偷東西才能活，但偷得太明顯就會被看穿。<br><b>Everyone is hunting. Everyone is hunted.</b></p>
     <div class="modes" role="group" aria-label="遊戲模式">
       <button class="mode" data-mode="sod" aria-pressed="true"><span class="en">STEAL<br>OR DIE</span><span class="zh">偷即王道</span><span class="desc">人人都是小偷、人人帶槍。每 60 秒淘汰分數最低的玩家，看不到排行榜。</span></button>
@@ -1077,6 +1077,8 @@ function finalizeWorld(extra){
   buildNav();computeReach();scene.updateMatrixWorld(true);
   for(const l of loot){l.obj.getWorldPosition(l.pos);l.stand=nearestFree(l.pos.x,l.pos.z);pois.push(l.stand);l.homeScale=l.obj.scale.clone();}
   for(const[x,z]of extra)pois.push(nearestFree(x,z));
+  // Pretender：每次載入地圖都清掉舊的物品模型快取，並在世界剛建好時一次算好，避免各玩家（尤其是跟著房主換圖的玩家）看到不同外觀
+  PM.clear();for(let i=0;i<loot.length;i++)propModel(i);
 }
 let reachM=null;
 function computeReach(){
@@ -2954,7 +2956,6 @@ function updateHud(){
   const tm=$('hTimer');
   if(G.mode==='sod'){tm.textContent=fmtT(G.nextElim);$('hSub').textContent=`第 ${G.round} 輪 · 距離下一次淘汰`;tm.classList.toggle('calm',G.nextElim>15);}
   else if(G.mode==='pretender'){
-    {const bl=$('blind'),on=G.hideT>0&&p.role==='guard'&&G.running;bl.hidden=!on;if(on)$('blindN').textContent=Math.ceil(G.hideT);}
     if(G.hideT>0){tm.textContent=Math.ceil(G.hideT);$('hSub').textContent=p.role==='guard'?'搜捕準備中：暫時不能動、不能開槍':'躲藏時間：快擺好位置';tm.classList.remove('calm');}
     else{tm.textContent=fmtT(G.timeLeft);$('hSub').textContent=p.role==='guard'?'時間到前找出所有物品組玩家':'撐到時間結束，別被找到';tm.classList.toggle('calm',G.timeLeft>20);}}
   else{tm.textContent=fmtT(G.timeLeft);$('hSub').textContent=G.mode==='tag'?'時間結束時是小偷就贏':G.mode==='spy'?'活到最後，或存活者中偷得最多':'小偷偷滿配額前撐住';tm.classList.toggle('calm',G.timeLeft>20);}
@@ -3479,6 +3480,7 @@ function frame(now){
     c.update(live?dt:0,a.alive?a.speedNow:0,{dead:!a.alive,reach:a.reachT>0||(a===G.player&&a.reachFlag),gun:a.gunState!=='none'&&a.alive,stab:a.stabT>0?1-a.stabT/.35:0});
   }
   document.body.classList.toggle('pt',G.mode==='pretender'&&(G.running||G.over));
+  {const bl=$('blind'),on=G.mode==='pretender'&&G.running&&!G.over&&G.hideT>0&&G.player&&G.player.role==='guard'&&!$('hud').hidden;if(bl.hidden===on)bl.hidden=!on;if(on)$('blindN').textContent=Math.ceil(G.hideT);}
   updateCamera(dt);
   {const vp=$('viewPad'),sh=G.viewing&&isMobile();if(vp.hidden===sh)vp.hidden=!sh;}
   if(G.running&&!G.paused)updateHud();
