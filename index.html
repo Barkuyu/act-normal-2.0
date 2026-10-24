@@ -203,6 +203,9 @@ body.layout-edit #tSkill.psv{pointer-events:auto!important}
 .viewpad button:active{background:rgba(230,185,79,.35)}
 .viewpad [data-k=ArrowUp]{grid-column:2;grid-row:1}.viewpad [data-k=ArrowLeft]{grid-column:1;grid-row:2}.viewpad [data-k=ArrowDown]{grid-column:2;grid-row:2}.viewpad [data-k=ArrowRight]{grid-column:3;grid-row:2}
 .viewpad [data-k=PageUp]{grid-column:1;grid-row:1}.viewpad [data-k=PageDown]{grid-column:3;grid-row:1}
+#blind{position:fixed;inset:0;z-index:95;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#ff2a22;text-align:center}
+#blind b{font:900 clamp(96px,26vw,220px)/1 var(--f-display);letter-spacing:.04em;text-shadow:0 0 40px rgba(255,30,20,.45)}
+#blind span{font-size:clamp(13px,2.6vw,18px);letter-spacing:.14em;color:#ff5a50}
 #hurt{position:fixed;inset:0;z-index:35;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(255,40,30,.12) 30%,rgba(255,20,10,.65) 100%)}
 #hurt.on{animation:hurtf .5s ease-out}
 @keyframes hurtf{0%{opacity:1}100%{opacity:0}}
@@ -411,7 +414,7 @@ body.mobile #hSkillRow{display:none}
 <div class="screen" id="menu">
   <div class="menu-col">
     <div class="eyebrow">Signal-Null · Social Deduction</div>
-    <h1 class="title">ACT<br><em>NORMAL</em><span class="ver">ver 3.0</span></h1>
+    <h1 class="title">ACT<br><em>NORMAL</em><span class="ver">ver 3.2</span></h1>
     <p class="tagline">辦公室裡人來人往，其中幾個人跟你一樣，是<b>假裝成 NPC 的玩家</b>。偷東西才能活，但偷得太明顯就會被看穿。<br><b>Everyone is hunting. Everyone is hunted.</b></p>
     <div class="modes" role="group" aria-label="遊戲模式">
       <button class="mode" data-mode="sod" aria-pressed="true"><span class="en">STEAL<br>OR DIE</span><span class="zh">偷即王道</span><span class="desc">人人都是小偷、人人帶槍。每 60 秒淘汰分數最低的玩家，看不到排行榜。</span></button>
@@ -470,7 +473,7 @@ body.mobile #hSkillRow{display:none}
         <div><h3>Infection（守衛同化戰）</h3><p>玩家分成小偷與守衛，守衛有無限子彈，要揪出偽裝的小偷。被守衛擊中的小偷會<b>被感染、轉為守衛</b>。小偷們要在 <b>180 秒</b>內合力偷滿配額（每位小偷 12 分）；守衛把小偷都感染完，或時間到小偷沒湊滿，守衛獲勝。守衛誤殺 NPC 會僵直 3 秒。</p></div>
         <div><h3>Tag War（爭奪戰）</h3><p>全程 <b>150 秒</b>，沒有槍。守衛靠近並抓住小偷，兩人<b>身分互換</b>；抓錯 NPC 會僵直 2.5 秒。新的小偷 8 秒後會換上一身新樣貌。時間結束那一刻是小偷的人獲勝。</p></div>
         <div><h3>Who's SPY（僅限多人）</h3><p>所有人都是間諜，只有真人玩家、沒有電腦角色，時長 3／4／5 分鐘由主辦者決定，每人 6 發子彈。活到最後，或時間到時存活者中分數最高的人獲勝。</p></div>
-        <div><h3>Who's Pretender（僅限多人）</h3><p>全房間的人隨機分成「<b>巡捕者</b>」與「<b>物品組</b>」，雙方開局前都能選角（Bob 不開放）。沒有電腦角色，也沒有可偷的東西。<br><b>物品組</b>一進場就變成地圖裡的某件<b>中型或大型物品</b>，每 <b>45 秒</b>會再隨機換成另一件（換之前畫面倒數 3 秒並每秒閃紅框）；100 血，每中一槍扣 34 並發出擠壓聲，20 秒沒受傷後每 0.3 秒回 1 滴；移動速度是一般「跑」的 3.5 倍、不能跑也不能攻擊，但有「<b>跳</b>」鍵；可原地<b>轉向</b>（不會卡進牆），擺好後能切成<b>全圖視角</b>自由觀看全場、隨時切回自己。<br><b>巡捕者</b>子彈無限、100 血，開局有 15 秒準備時間；每次開槍沒打到玩家（打到普通物品或分身）扣 15 血，20 秒沒開槍後每 0.3 秒回 1 滴，血量歸零就出局。<br>時限內巡捕者把物品組全部擊倒就贏；時間到還有物品組存活，或巡捕者全數出局，則物品組獲勝。</p></div>
+        <div><h3>Who's Pretender（僅限多人）</h3><p>全房間的人隨機分成「<b>巡捕者</b>」與「<b>物品組</b>」，雙方開局前都能選角（Bob 不開放）。場上有電腦 NPC 自由走動，沒有可偷的東西。<br><b>物品組</b>一進場就變成地圖裡的某件<b>大型物品</b>，每 <b>45 秒</b>會再隨機換成另一件（換之前畫面倒數 3 秒並每秒閃紅框）；100 血，每中一槍扣 34 並發出擠壓聲，<b>不會回血</b>；移動速度是一般「跑」的 1.5 倍、不能跑也不能攻擊，但有「<b>跳</b>」鍵；可原地<b>轉向</b>（不會卡進牆），擺好後能切成<b>全圖視角</b>自由觀看全場、隨時切回自己。<br><b>巡捕者</b>子彈無限、100 血，開局有 <b>30 秒</b>全黑屏準備時間（紅字倒數，看不見、不能動、不能開槍，倒數完才開始計算本局時間）；每次開槍沒打到玩家（打到普通物品或分身）扣 15 血，20 秒沒開槍後每 0.3 秒回 1 滴，血量歸零就出局。<br>時限內巡捕者把物品組全部擊倒就贏；時間到還有物品組存活，或巡捕者全數出局，則物品組獲勝。</p></div>
         <div><h3>好友派對模式 🔒</h3><p>多人專屬的新玩法，內容籌備中，目前在多人列表中為鎖定狀態，敬請期待。</p></div>
       </div>
       <h3>角色與被動技能</h3>
@@ -588,6 +591,7 @@ body.mobile #hSkillRow{display:none}
 </div>
 
 <div id="hurt" aria-hidden="true"></div>
+<div id="blind" hidden><b id="blindN">30</b><span>搜捕準備中　暫時看不見、不能動、不能開槍</span></div>
 <div id="notice" role="alert" hidden><span id="noticeTxt"></span><button id="noticeX" aria-label="關閉">×</button></div>
 
 <div class="modal" id="tutor" hidden>
@@ -2039,7 +2043,7 @@ function startGame(){
   rollMap();clearAgents();loadMap(mapId());resetLoot();
   gunOut=false;holdE=false;stealProg=0;touchRun=false;$('tRun').classList.remove('on');$('tGun').classList.remove('on');
   Object.assign(G,{running:true,paused:false,over:false,t:0,nextElim:60,round:1,teamLoot:0,heat:0,viewing:false});smokeEm.length=0;
-  if(G.mode!=='pretender')for(let i=0;i<npcCount();i++)makeAgent('npc',spawnPoint());
+  for(let i=0;i<npcCount();i++)makeAgent('npc',spawnPoint());
   const roster=NET.mode==='host'?NET.gameRoster():[{kind:'player',name:'你',ch:resolveCh(G.char)}];
   const n=NET.mode==='host'?((G.mode==='spy'||G.mode==='pretender')?roster.length:clamp(Math.max(NET.total,roster.length),2,8)):G.nPlayers;
   if(G.mode==='spy'||G.mode==='pretender')G.nPlayers=roster.length;
@@ -2357,7 +2361,7 @@ function useSkill(a){
 }
 
 // ================= Who's Pretender =================
-const PT={hp:100,hurtProp:34,missCost:15,regenWait:20,regenStep:.3,reroll:45,hide:15,speed:3.4*3.5,jumpV:5.6,grav:12};
+const PT={hp:100,hurtProp:34,missCost:15,regenWait:20,regenStep:.3,reroll:45,hide:30,speed:3.4*1.5,jumpV:6.75,grav:12};
 // which character skills make sense for each team in this mode (props can't run / seekers have no NPC to snap ...)
 const PRETENDER_OK={thief:['steve','joseph','ray','shifu','kimo','shan'],guard:['steve','joseph','ray','judy','tom','ashley']};
 function pretenderSkillOK(a){return PRETENDER_OK[a.role==='guard'?'guard':'thief'].includes(a.ch);}
@@ -2374,7 +2378,13 @@ function propModel(idx){
   m={tmpl:w,w:sz.x,d:sz.z,h:sz.y,ok:mx>=.25&&sz.y>=.15&&sz.x<=2.2&&sz.z<=2.2&&sz.y<=2.4&&Math.min(sz.x,sz.z)>=.08};
   PM.set(idx,m);return m;
 }
-function buildPropPool(){PM.clear();propPool=[];for(let i=0;i<loot.length;i++){const m=propModel(i);if(m&&m.ok)propPool.push(i);}if(!propPool.length)for(let i=0;i<loot.length;i++)propPool.push(i);}
+function buildPropPool(){PM.clear();propPool=[];const c=[];
+  for(let i=0;i<loot.length;i++){const m=propModel(i);if(m&&m.ok)c.push([i,Math.max(m.w,m.h,m.d)]);}
+  if(!c.length)for(let i=0;i<loot.length;i++)c.push([i,1]);
+  c.sort((a,b)=>b[1]-a[1]);
+  // 「大」型：本圖尺寸 ≥0.9 公尺者；不足 8 件時取本圖最大的 8 件
+  let big=c.filter(x=>x[1]>=.9);if(big.length<8)big=c.slice(0,8);
+  propPool=big.map(x=>x[0]);}
 const FP_PTS=[[0,0],[1,1],[-1,1],[1,-1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]];
 function footOK(x,z,yaw,hw,hd){
   const c=Math.cos(yaw),s=Math.sin(yaw);
@@ -2444,8 +2454,8 @@ function pretenderTick(dt){
   else{G.timeLeft-=dt;if(G.timeLeft<=0&&!G.over){const hs=humans();endGame(hs.some(h=>h.role==='thief'&&h.alive)?'time':'seekers');return;}}
   for(const a of G.agents){
     if(a.kind==='npc'||!a.alive)continue;
-    if(a.role==='thief'){a.propT-=dt;if(a.propT<=0)rerollProp(a);}
-    if(a.hp<PT.hp&&G.t-(a.lastHurt||-99)>=PT.regenWait){a.regenT=(a.regenT||0)+dt;while(a.regenT>=PT.regenStep){a.regenT-=PT.regenStep;a.hp=Math.min(PT.hp,a.hp+1);}}else a.regenT=0;
+    if(a.role==='thief'&&G.hideT<=0){a.propT-=dt;if(a.propT<=0)rerollProp(a);}
+    if(a.role==='guard'&&a.hp<PT.hp&&G.t-(a.lastHurt||-99)>=PT.regenWait){a.regenT=(a.regenT||0)+dt;while(a.regenT>=PT.regenStep){a.regenT-=PT.regenStep;a.hp=Math.min(PT.hp,a.hp+1);}}else a.regenT=0;
   }
 }
 // ---- player-side prop control ----
@@ -2944,6 +2954,7 @@ function updateHud(){
   const tm=$('hTimer');
   if(G.mode==='sod'){tm.textContent=fmtT(G.nextElim);$('hSub').textContent=`第 ${G.round} 輪 · 距離下一次淘汰`;tm.classList.toggle('calm',G.nextElim>15);}
   else if(G.mode==='pretender'){
+    {const bl=$('blind'),on=G.hideT>0&&p.role==='guard'&&G.running;bl.hidden=!on;if(on)$('blindN').textContent=Math.ceil(G.hideT);}
     if(G.hideT>0){tm.textContent=Math.ceil(G.hideT);$('hSub').textContent=p.role==='guard'?'搜捕準備中：暫時不能動、不能開槍':'躲藏時間：快擺好位置';tm.classList.remove('calm');}
     else{tm.textContent=fmtT(G.timeLeft);$('hSub').textContent=p.role==='guard'?'時間到前找出所有物品組玩家':'撐到時間結束，別被找到';tm.classList.toggle('calm',G.timeLeft>20);}}
   else{tm.textContent=fmtT(G.timeLeft);$('hSub').textContent=G.mode==='tag'?'時間結束時是小偷就贏':G.mode==='spy'?'活到最後，或存活者中偷得最多':'小偷偷滿配額前撐住';tm.classList.toggle('calm',G.timeLeft>20);}
