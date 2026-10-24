@@ -69,6 +69,12 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brass);out
 .role span{font-size:12px;color:var(--paper-dim)}
 .role.guard b{color:var(--cool)}
 .role.thief b{color:var(--brass)}
+.hpbar{width:96px;height:10px;border-radius:5px;background:#ffffff22;overflow:hidden;align-self:center}
+.hpbar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#e0463a,#e6b94f 55%,#5fd18a);transition:width .15s}
+body.pt .heat{display:none}
+.propcd{position:absolute;left:0;right:0;top:20%;text-align:center;font:900 clamp(26px,5vw,44px)/1 var(--f-display);letter-spacing:.08em;color:#ff6a5a;text-shadow:0 4px 24px rgba(0,0,0,.7)}
+.skdesc{font-size:11.5px;line-height:1.5;color:var(--paper-dim);max-width:232px;border-top:1px solid var(--line);padding-top:6px}
+body.mobile .skdesc{grid-column:1/-1;font-size:10.5px;max-width:250px;padding-top:4px}
 .stat{display:flex;justify-content:space-between;gap:16px;font-size:13px;color:var(--paper-dim)}
 .stat strong{font:600 15px/1 var(--f-mono);color:var(--paper);font-variant-numeric:tabular-nums}
 .ammo{display:flex;gap:3px}
@@ -192,6 +198,11 @@ body.ctrl-tap .joy{display:none}
 #tSkill.on{background:#fff;color:var(--ink)}
 #tSkill.psv{pointer-events:none!important}
 body.layout-edit #tSkill.psv{pointer-events:auto!important}
+.viewpad{position:fixed;left:max(14px,env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(3,54px);grid-auto-rows:54px;gap:6px;z-index:30}
+.viewpad button{border-radius:12px;border:1px solid rgba(239,233,220,.28);background:rgba(13,15,20,.62);color:var(--paper);font:700 16px var(--f-body);touch-action:none;backdrop-filter:blur(6px)}
+.viewpad button:active{background:rgba(230,185,79,.35)}
+.viewpad [data-k=ArrowUp]{grid-column:2;grid-row:1}.viewpad [data-k=ArrowLeft]{grid-column:1;grid-row:2}.viewpad [data-k=ArrowDown]{grid-column:2;grid-row:2}.viewpad [data-k=ArrowRight]{grid-column:3;grid-row:2}
+.viewpad [data-k=PageUp]{grid-column:1;grid-row:1}.viewpad [data-k=PageDown]{grid-column:3;grid-row:1}
 #hurt{position:fixed;inset:0;z-index:35;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(255,40,30,.12) 30%,rgba(255,20,10,.65) 100%)}
 #hurt.on{animation:hurtf .5s ease-out}
 @keyframes hurtf{0%{opacity:1}100%{opacity:0}}
@@ -359,8 +370,10 @@ body.mobile #hSkillRow{display:none}
   <div class="hud-card">
     <div class="role thief" id="hRole"><b>小偷</b><span>THIEF</span></div>
     <div class="stat"><span>角色</span><strong id="hChar" style="font-family:var(--f-body);font-weight:700">—</strong></div>
+    <div class="skdesc" id="hSkDesc"></div>
     <div class="stat" id="hScoreRow"><span>你的戰利品</span><strong id="hScore">0</strong></div>
     <div class="stat" id="hAmmoRow"><span id="hAmmoLbl">隱藏手槍</span><div class="ammo" id="hAmmo"></div></div>
+    <div class="stat" id="hHpRow" hidden><span>血量</span><div class="hpbar"><i id="hHp"></i></div><strong id="hHpN">100</strong></div>
     <div class="stat" id="hSkillRow" hidden><span><span id="hSkillLbl">技能</span> <kbd id="hSkillKey">R</kbd></span><strong id="hSkill">就緒</strong></div>
     <div class="stat"><span id="hAliveLbl">存活玩家</span><strong id="hAlive">6</strong></div>
   </div>
@@ -375,6 +388,7 @@ body.mobile #hSkillRow{display:none}
   <div class="cross dot" id="hCross"></div>
   <div class="feed" id="hFeed"></div>
   <div class="big" id="hBig"></div>
+  <div class="propcd" id="hPropCd" hidden></div>
   <div class="lockhint" id="hLock" hidden>點一下畫面以操控視角</div>
   <div class="keys" id="hKeys"></div>
 </div>
@@ -390,6 +404,7 @@ body.mobile #hSkillRow{display:none}
     <button id="tSkill" hidden aria-label="角色技能"><svg viewBox="0 0 70 70"><circle cx="35" cy="35" r="32" stroke="#ffffff22"/><circle id="tSkillRing" cx="35" cy="35" r="32" stroke="#ffffff" stroke-dasharray="201" stroke-dashoffset="0"/></svg><span class="sk">技能</span><span class="n" hidden></span></button>
   </div>
   <button class="tpause" id="tPause" aria-label="暫停">II</button>
+  <div class="viewpad" id="viewPad" hidden><button data-k="ArrowUp">▲</button><button data-k="ArrowLeft">◀</button><button data-k="ArrowDown">▼</button><button data-k="ArrowRight">▶</button><button data-k="PageUp">升</button><button data-k="PageDown">降</button></div>
   <div class="rot-hint" id="rotHint" hidden>橫向握持手機，視野更寬 <button id="rotOk">知道了</button></div>
 </div>
 
@@ -402,7 +417,7 @@ body.mobile #hSkillRow{display:none}
       <button class="mode" data-mode="sod" aria-pressed="true"><span class="en">STEAL<br>OR DIE</span><span class="zh">偷即王道</span><span class="desc">人人都是小偷、人人帶槍。每 60 秒淘汰分數最低的玩家，看不到排行榜。</span></button>
       <button class="mode" data-mode="infection" aria-pressed="false"><span class="en">INFEC&shy;TION</span><span class="zh">守衛同化戰</span><span class="desc">守衛找出偽裝的小偷。被守衛擊中的小偷會被感染、轉為守衛。</span></button>
       <button class="mode" data-mode="tag" aria-pressed="false"><span class="en">TAG<br>WAR</span><span class="zh">爭奪戰</span><span class="desc">守衛抓到小偷，兩人身分互換。時間結束那一刻是小偷的人獲勝。</span></button>
-      <button class="mode locked" data-mode="pretender" disabled aria-disabled="true"><span class="en">WHO'S<br>PRETENDER</span><span class="zh">敬請期待<i aria-hidden="true">🔒</i></span><span class="desc">新玩法籌備中，尚未開放。</span></button>
+      <button class="mode locked" data-mode="pretender" disabled aria-disabled="true"><span class="en">WHO'S<br>PRE&shy;TENDER</span><span class="zh">多人專屬<i aria-hidden="true">🔒</i></span><span class="desc">巡捕者與物品組的躲貓貓，只能在多人連線中遊玩。</span></button>
     </div>
     <div class="row" id="mapRow">
       <label>地圖</label>
@@ -455,7 +470,7 @@ body.mobile #hSkillRow{display:none}
         <div><h3>Infection（守衛同化戰）</h3><p>玩家分成小偷與守衛，守衛有無限子彈，要揪出偽裝的小偷。被守衛擊中的小偷會<b>被感染、轉為守衛</b>。小偷們要在 <b>180 秒</b>內合力偷滿配額（每位小偷 12 分）；守衛把小偷都感染完，或時間到小偷沒湊滿，守衛獲勝。守衛誤殺 NPC 會僵直 3 秒。</p></div>
         <div><h3>Tag War（爭奪戰）</h3><p>全程 <b>150 秒</b>，沒有槍。守衛靠近並抓住小偷，兩人<b>身分互換</b>；抓錯 NPC 會僵直 2.5 秒。新的小偷 8 秒後會換上一身新樣貌。時間結束那一刻是小偷的人獲勝。</p></div>
         <div><h3>Who's SPY（僅限多人）</h3><p>所有人都是間諜，只有真人玩家、沒有電腦角色，時長 3／4／5 分鐘由主辦者決定，每人 6 發子彈。活到最後，或時間到時存活者中分數最高的人獲勝。</p></div>
-        <div><h3>Who's Pretender 🔒</h3><p>新玩法籌備中，目前在單人與多人列表中皆為鎖定狀態，敬請期待。</p></div>
+        <div><h3>Who's Pretender（僅限多人）</h3><p>全房間的人隨機分成「<b>巡捕者</b>」與「<b>物品組</b>」，雙方開局前都能選角（Bob 不開放）。沒有電腦角色，也沒有可偷的東西。<br><b>物品組</b>一進場就變成地圖裡的某件<b>中型或大型物品</b>，每 <b>45 秒</b>會再隨機換成另一件（換之前畫面倒數 3 秒並每秒閃紅框）；100 血，每中一槍扣 34 並發出擠壓聲，20 秒沒受傷後每 0.3 秒回 1 滴；移動速度是一般「跑」的 3.5 倍、不能跑也不能攻擊，但有「<b>跳</b>」鍵；可原地<b>轉向</b>（不會卡進牆），擺好後能切成<b>全圖視角</b>自由觀看全場、隨時切回自己。<br><b>巡捕者</b>子彈無限、100 血，開局有 15 秒準備時間；每次開槍沒打到玩家（打到普通物品或分身）扣 15 血，20 秒沒開槍後每 0.3 秒回 1 滴，血量歸零就出局。<br>時限內巡捕者把物品組全部擊倒就贏；時間到還有物品組存活，或巡捕者全數出局，則物品組獲勝。</p></div>
         <div><h3>好友派對模式 🔒</h3><p>多人專屬的新玩法，內容籌備中，目前在多人列表中為鎖定狀態，敬請期待。</p></div>
       </div>
       <h3>角色與被動技能</h3>
@@ -471,6 +486,8 @@ body.mobile #hSkillRow{display:none}
         <div><h3>Tom</h3><p>膽小鬼，一聽到巨響跑得比誰都快。在遊戲中<b>聽到槍聲後 15 秒內，按「跑」奔跑的速度變 3 倍</b>；結束後冷卻 <b>50 秒</b>（顯示方式同 Kimo）。Ashley 的消音槍不會觸發。</p></div>
         <div><h3>Teddy</h3><p>十足的竊賊。<b>偷東西只要按一下「偷」鍵</b>，0.2 秒後就完成，不必按住，也不必先停下來。</p></div>
         <div><h3>Ray</h3><p>愛研究超自然能力。按下<b>技能</b>鈕後，有 <b>1 秒</b>可以<b>無視障礙物與牆體直接穿越</b>（身體半透明）；冷卻 <b>45 秒</b>。穿越結束若卡在牆內，會被推到最近的空地。操作同 Steve。</p></div>
+        <div><h3>Shan</h3><p>最愛火影忍者，真的學會了分身術。按下<b>技能</b>鈕會噴出 0.3 秒白煙，並分出<b>兩個外貌與你一模一樣的分身</b>（由電腦操控、無法攻擊）；冷卻 <b>120 秒</b>。</p></div>
+        <div><h3>Thanos</h3><p>嚮往一彈指就讓人灰飛煙滅。按下<b>技能</b>鈕後<b>僵直施法 0.5 秒</b>，接著<b>隨機倒下兩名電腦 NPC</b>（Shan 的分身也算）；冷卻 <b>60 秒</b>。</p></div>
         <div><h3>Shi-Fu</h3><p>氣功大師，據說刀槍不入。按下<b>技能</b>鈕後 <b>2 秒無敵</b>（泛金光），期間任何武器打中他都只會發出<b>金屬鏗鏘聲</b>、不會受傷；冷卻 <b>60 秒</b>。操作同 Steve。</p></div>
       </div>
       <h3>隨機與外觀</h3><p>選角畫面最前面有「<b>隨機</b>」選項，開局時才抽出角色。選角只決定名字與被動，<b>進場後每個人的外觀（髮型、衣服、膚色、褲子、鞋子）都是完全隨機的</b>。</p>
@@ -522,12 +539,12 @@ body.mobile #hSkillRow{display:none}
       <div class="lobby-head"><div><div class="eyebrow">房間密碼</div><div class="code-big" id="lbCode">0000</div></div><div class="lb-net" id="lbNet">即時房間</div></div>
       <ul class="members" id="lbList"></ul>
       <div id="lbHostCtl" class="mp-col">
-        <div class="row"><label>模式</label><div class="seg" id="lbMode"><button data-m="sod" aria-pressed="true">Steal or Die<small>偷即王道</small></button><button data-m="infection" aria-pressed="false">Infection<small>守衛同化戰</small></button><button data-m="tag" aria-pressed="false">Tag War<small>爭奪戰</small></button><button data-m="spy" aria-pressed="false">Who's SPY</button><button data-m="pretender" disabled aria-disabled="true" title="敬請期待">Who's Pretender 🔒</button><button data-m="party" disabled aria-disabled="true" title="敬請期待">好友派對模式 🔒</button></div></div>
+        <div class="row"><label>模式</label><div class="seg" id="lbMode"><button data-m="sod" aria-pressed="true">Steal or Die<small>偷即王道</small></button><button data-m="infection" aria-pressed="false">Infection<small>守衛同化戰</small></button><button data-m="tag" aria-pressed="false">Tag War<small>爭奪戰</small></button><button data-m="spy" aria-pressed="false">Who's SPY</button><button data-m="pretender" aria-pressed="false">Who's<br>Pretender</button><button data-m="party" disabled aria-disabled="true" title="敬請期待">好友派對模式 🔒</button></div></div>
         <div class="row"><label>地圖</label><div class="seg map-seg" id="lbMap"></div></div>
         <div class="row" id="lbDurRow" hidden><label>遊戲時長</label><div class="seg" id="lbDur"><button data-d="3" aria-pressed="false">3 分鐘</button><button data-d="4" aria-pressed="true">4 分鐘</button><button data-d="5" aria-pressed="false">5 分鐘</button></div><span class="mp-hint" id="lbDurHint">僅限真人玩家，無電腦角色</span></div>
         <div class="row" id="lbTotalRow"><label>總人數</label><div class="stepper"><button id="lbMinus" aria-label="減少">−</button><output id="lbTotal">6 人</output><button id="lbPlus" aria-label="增加">+</button></div><span class="mp-hint" id="lbBots"></span></div>
       </div>
-      <div class="row"><label>你的角色</label><button class="ghost" id="lbChar">選擇角色</button></div>
+      <div class="row" id="lbCharRow" hidden><label>你的角色</label><button class="ghost" id="lbChar">選擇角色</button></div>
       <div class="waitbox" id="waitBox" hidden><div class="wb-en">Waiting for your opponent.</div><div class="wb-zh">等待你的對手中<span class="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></div></div>
       <p class="lead" id="lbWait" hidden>等待主辦者開始遊戲…</p>
       <div class="btns"><button class="go" id="lbStart">開始遊戲</button><button class="ghost" id="lbLeave">離開房間</button></div>
@@ -1861,10 +1878,10 @@ function audioInit(){
   const src=AC.createBufferSource();src.buffer=buf;src.loop=true;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=500;const g=AC.createGain();g.gain.value=.05;src.connect(f).connect(g).connect(master);src.start();
 }
 function noiseBuf(dur){const n=AC.sampleRate*dur,b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return b;}
-function heardShot(pos){if(!G.running)return;for(const a of G.agents){if(a.ch!=='tom'||!a.alive||a.boostT>0||a.skillCD>0)continue;if(a!==G.player&&a.kind!=='bot')continue;if(pos&&a.pos.distanceTo(pos)>32)continue;a.boostT=15;}}
+function heardShot(pos){if(!G.running)return;for(const a of G.agents){if(a.ch!=='tom'||!a.alive||a.boostT>0||a.skillCD>0||(G.mode==='pretender'&&a.role!=='guard'))continue;if(a!==G.player&&a.kind!=='bot')continue;if(pos&&a.pos.distanceTo(pos)>32)continue;a.boostT=15;}}
 function sfx(type,pos){
   if(type==='shot')heardShot(pos);
-  if(NET.mode==='host'&&G.running&&(type==='pop'||type==='shot'||type==='click'||type==='elim'||type==='tag'||type==='slash'||type==='clang'))netEv(['fx',type,pos?r1(pos.x):null,pos?r1(pos.z):null,NET.curBy]);
+  if(NET.mode==='host'&&G.running&&(type==='pop'||type==='shot'||type==='click'||type==='elim'||type==='tag'||type==='slash'||type==='clang'||type==='snap'||type==='squish'))netEv(['fx',type,pos?r1(pos.x):null,pos?r1(pos.z):null,NET.curBy]);
   if(!AC)return;const t=AC.currentTime;
   let v=1;if(pos){const ref=G.player&&G.running?G.player.pos:camTarget;v=clamp(1-pos.distanceTo(ref)/30,0,1);if(v<=0)return;}
   const out=AC.createGain();out.gain.value=v;out.connect(master);
@@ -1879,6 +1896,8 @@ function sfx(type,pos){
   if(type==='slash'){nz(.2,7500,700,.55,.8);tone(2600,900,.1,'triangle',.05);}
   if(type==='elim'){for(const[f,g]of[[110,.3],[220,.18],[331,.1]])tone(f,null,2.6,'sine',g);}
   if(type==='tag'){tone(300,900,.25,'triangle',.2);}
+  if(type==='snap'){nz(.03,6000,2000,.6);tone(90,40,.5,'sine',.5,.02);tone(1200,200,.25,'triangle',.08,.02);}
+  if(type==='squish'){tone(420,160,.16,'sawtooth',.2);tone(300,520,.12,'square',.08,.12);nz(.1,2500,500,.18);}
   if(type==='tick'){tone(1800,null,.05,'square',.04);}
   if(type==='start'){tone(220,440,.6,'sawtooth',.06);tone(330,660,.6,'triangle',.08,.05);}
 }
@@ -1932,11 +1951,23 @@ CHARS.shifu={id:'shifu',name:'Shi-Fu',look:[0,0,0,0,0,0,0,0],skill:'shield',
     intro:'Shi-Fu是位氣功大師，據說已經練到刀槍不入的地步了！但沒人知道究竟是真的假的？',
     passive:'按下「技能」鈕後，有 2 秒處於無敵狀態（身體泛金光），期間所有武器打在他身上都會發出金屬反彈的鏗鏘聲，不會受傷。技能冷卻 60 秒。（手機：冷卻倒數直接顯示在按鈕上；電腦：按 R 鍵發動，冷卻顯示在左上資訊卡。）',
     note:'所有模式都能使用'};
-const CHAR_IDS=['bob','ashley','steve','joseph','judy','young','kimo','tom','teddy','ray','shifu'];
-const resolveCh=c=>c==='random'?pick(CHAR_IDS):(CHARS[c]?c:'ashley');
+CHARS.shan={id:'shan',name:'Shan',look:[0,0,0,0,0,0,0,0],skill:'clone',
+    intro:'Shan最喜歡的動漫卡通是「火影忍者」，一直夢想著可以像忍者一樣實施分身術，沒想到最後還真的被他學會了！',
+    passive:'按下「技能」鈕後會瞬間噴發 0.3 秒的白煙，將自身分出兩個分身體（外貌與本體一模一樣，但都由電腦操控、無法攻擊）。技能冷卻 120 秒。（手機：冷卻倒數直接顯示在按鈕上；電腦：按 R 鍵發動，冷卻顯示在左上資訊卡。）',
+    note:'所有模式都能使用（Who\'s Pretender 僅「物品組」可用）'};
+CHARS.thanos={id:'thanos',name:'Thanos',look:[0,0,0,0,0,0,0,0],skill:'snap',
+    intro:'Thanos非常喜歡漫威電影裡那個全身紫色、帶著六顆寶石手套的大反派，特別是彈一下指就能讓人灰飛煙滅的能力，實在讓他很嚮往。',
+    passive:'按下「技能」鈕後，會有 0.5 秒處於僵直施法狀態，接著遊戲中隨機倒下兩名電腦 NPC（Shan 的分身也算在其中）。技能冷卻 60 秒。（手機：冷卻倒數直接顯示在按鈕上；電腦：按 R 鍵發動，冷卻顯示在左上資訊卡。）',
+    note:'在有 NPC 的模式生效（Who\'s Pretender 沒有 NPC，無法使用）'};
+const CHAR_IDS=['bob','ashley','steve','joseph','judy','young','kimo','tom','teddy','ray','shifu','shan','thanos'];
+const BRIEF={bob:'武器是小刀：只能貼身向前突刺。',ashley:'消音槍：開槍沒有槍聲。',steve:'技能：噴白煙後隱身 3 秒（冷卻 45 秒）。',joseph:'技能：噴白煙後換成另一副模樣（冷卻 60 秒）。',
+  judy:'被動：奔跑速度 ×2。',young:'被動：每偷滿 8 顆星 +1 發子彈。',kimo:'被動：前兩次攻擊不致命，用完後冷卻 60 秒。',tom:'被動：聽到槍聲後 15 秒奔跑 ×3（冷卻 50 秒）。',
+  teddy:'被動：偷東西只需按一下，0.2 秒完成。',ray:'技能：1 秒內可穿越障礙與牆體（冷卻 45 秒）。',shifu:'技能：2 秒無敵、武器打上去只有鏗鏘聲（冷卻 60 秒）。',
+  shan:'技能：噴白煙後分出 2 個一模一樣的分身，由電腦操控、無法攻擊（冷卻 120 秒）。',thanos:'技能：施法僵直 0.5 秒後，隨機倒下 2 名電腦 NPC（冷卻 60 秒）。'};
+const resolveCh=c=>c==='random'?pick(CHAR_IDS.filter(x=>!(G.mode==='pretender'&&x==='bob'))):(CHARS[c]?c:'ashley');
 const chName=c=>c==='random'?'隨機':(CHARS[c]||CHARS.ashley).name;
-const CHAR_CODE={bob:'b',ashley:'a',steve:'s',joseph:'j',judy:'u',young:'y',kimo:'k',tom:'t',teddy:'e',ray:'r',shifu:'f'},CODE_CHAR={};for(const k in CHAR_CODE)CODE_CHAR[CHAR_CODE[k]]=k;
-const SKILL_CHARS={steve:45,joseph:60,ray:45,shifu:60},PASSIVE_CD={kimo:60,tom:50},hasSkill=c=>c in SKILL_CHARS,hasPassive=c=>c in PASSIVE_CD;
+const CHAR_CODE={bob:'b',ashley:'a',steve:'s',joseph:'j',judy:'u',young:'y',kimo:'k',tom:'t',teddy:'e',ray:'r',shifu:'f',shan:'n',thanos:'h'},CODE_CHAR={};for(const k in CHAR_CODE)CODE_CHAR[CHAR_CODE[k]]=k;
+const SKILL_CHARS={steve:45,joseph:60,ray:45,shifu:60,shan:120,thanos:60},PASSIVE_CD={kimo:60,tom:50},hasSkill=c=>c in SKILL_CHARS,hasPassive=c=>c in PASSIVE_CD;
 const runMul=a=>a.ch==='judy'?2:(a.ch==='tom'&&a.boostT>0?3:1);
 function recolorIdx(b){return [ri(SKIN),ri(SHIRT),ri(PANTS),ri(HAIR),ri(SHOES),b[5],b[6],ri(ACCS)];}
 let _svgN=0;
@@ -1971,6 +2002,7 @@ function charSVG(v,o={}){
 
 // ================= game state =================
 const BOT_NAMES=['灰狐','夜鷹','黑貓','蜂鳥','白鴉','青蛇','紅隼'];
+const AMMO_MAX=9;
 const G={char:(LS.get('an-char')==='random'||CHARS[LS.get('an-char')])?LS.get('an-char'):'ashley',map:(LS.get('an-map')==='random'||MAPS[LS.get('an-map')])?LS.get('an-map'):'news',mapRes:null,mode:'sod',nPlayers:6,infRole:'thief',running:false,paused:false,over:false,t:0,agents:[],player:null,nextElim:60,round:1,timeLeft:0,teamLoot:0,quota:0,heat:0,percT:0,feedQ:[],viewing:false};
 let nextId=1;
 function makeAgent(kind,pos,lk,ch){
@@ -1982,7 +2014,7 @@ function makeAgent(kind,pos,lk,ch){
   c.root.position.copy(a.pos);c.root.rotation.y=a.yaw;
   G.agents.push(a);return a;
 }
-function clearAgents(){for(const a of G.agents){scene.remove(a.char.root);}G.agents=[];labelsEl.innerHTML='';labelMap.clear();}
+function clearAgents(){for(const a of G.agents){scene.remove(a.char.root);if(a.propObj)scene.remove(a.propObj);}G.agents=[];labelsEl.innerHTML='';labelMap.clear();}
 function spawnPoint(){
   for(let k=0;k<200;k++){const x=rand(MAPB.x0,MAPB.x1),z=rand(MAPB.z0,MAPB.z1);if(!walkable(x,z)||!reachable(x,z))continue;if(G.agents.some(a=>Math.hypot(a.pos.x-x,a.pos.z-z)<1.6))continue;return new THREE.Vector3(x,0,z);}
   return nearestFree(0,2.5);
@@ -2002,21 +2034,21 @@ function setupMenuScene(){
 
 function startGame(){
   if(NET.mode==='client')return;
-  if(G.mode==='spy'&&(NET.mode!=='host'||NET.gameRoster().length<2)){if(NET.mode==='host'){lobbyHint('Who\'s SPY 至少需要 2 位真人玩家');return;}G.mode='sod';}
+  if((G.mode==='spy'||G.mode==='pretender')&&(NET.mode!=='host'||NET.gameRoster().length<2)){if(NET.mode==='host'){lobbyHint((G.mode==='spy'?'Who\'s SPY':'Who\'s Pretender')+' 至少需要 2 位真人玩家');return;}G.mode='sod';}
   audioInit();sfx('start');
   rollMap();clearAgents();loadMap(mapId());resetLoot();
   gunOut=false;holdE=false;stealProg=0;touchRun=false;$('tRun').classList.remove('on');$('tGun').classList.remove('on');
   Object.assign(G,{running:true,paused:false,over:false,t:0,nextElim:60,round:1,teamLoot:0,heat:0,viewing:false});smokeEm.length=0;
-  for(let i=0;i<npcCount();i++)makeAgent('npc',spawnPoint());
+  if(G.mode!=='pretender')for(let i=0;i<npcCount();i++)makeAgent('npc',spawnPoint());
   const roster=NET.mode==='host'?NET.gameRoster():[{kind:'player',name:'你',ch:resolveCh(G.char)}];
-  const n=NET.mode==='host'?(G.mode==='spy'?roster.length:clamp(Math.max(NET.total,roster.length),2,8)):G.nPlayers;
-  if(G.mode==='spy')G.nPlayers=roster.length;
+  const n=NET.mode==='host'?((G.mode==='spy'||G.mode==='pretender')?roster.length:clamp(Math.max(NET.total,roster.length),2,8)):G.nPlayers;
+  if(G.mode==='spy'||G.mode==='pretender')G.nPlayers=roster.length;
   const names=[...BOT_NAMES].sort(()=>Math.random()-.5);
-  for(const r of roster){const ch0=CHARS[r.ch]?r.ch:'ashley';const a=makeAgent(r.kind,spawnPoint(),null,ch0);a.name=r.name;a.peer=r.peer||null;if(r.kind==='player')G.player=a;}
+  for(const r of roster){let ch0=CHARS[r.ch]?r.ch:'ashley';if(G.mode==='pretender'&&ch0==='bob')ch0='ashley';const a=makeAgent(r.kind,spawnPoint(),null,ch0);a.name=r.name;a.peer=r.peer||null;if(r.kind==='player')G.player=a;}
   for(let i=roster.length;i<n;i++){const bc=pick(CHAR_IDS);const b=makeAgent('bot',spawnPoint(),null,bc);b.name=names[i%names.length];}
   const hs=humans();
-  if(G.mode==='sod'){for(const h of hs){h.role='thief';h.hasGun=true;h.ammo=6;}G.timeLeft=Infinity;}
-  if(G.mode==='spy'){for(const h of hs){h.role='thief';h.hasGun=true;h.ammo=6;}G.timeLeft=(NET.dur||4)*60;}
+  if(G.mode==='sod'){for(const h of hs){h.role='thief';h.hasGun=true;h.ammo=AMMO_MAX;}G.timeLeft=Infinity;}
+  if(G.mode==='spy'){for(const h of hs){h.role='thief';h.hasGun=true;h.ammo=AMMO_MAX;}G.timeLeft=(NET.dur||4)*60;}
   if(G.mode==='tag'){
     const order=[...hs].sort(()=>Math.random()-.5);const ng=Math.floor(hs.length/2);
     order.forEach((h,i)=>{h.role=i<ng?'guard':'thief';});
@@ -2035,6 +2067,13 @@ function startGame(){
     for(const h of hs){if(h.role==='guard'){h.hasGun=true;h.ammo=Infinity;}}
     G.quota=hs.filter(h=>h.role==='thief').length*12;G.timeLeft=180;
   }
+  if(G.mode==='pretender'){
+    buildPropPool();G.hideT=PT.hide;G.timeLeft=(NET.dur||4)*60;
+    const order=[...hs].sort(()=>Math.random()-.5),ns=Math.max(1,Math.floor(order.length/2));
+    order.forEach((h,i)=>{h.hp=PT.hp;h.lastHurt=-99;h.regenT=0;h.jy=0;h.jv=0;
+      if(i<ns){h.role='guard';h.hasGun=true;h.ammo=Infinity;}
+      else{h.role='thief';h.hasGun=false;h.ammo=0;setProp(h,pickPropFor(h,-1));h.propT=PT.reroll;}});
+  }
   for(const h of hs)if(h.ch==='bob'&&h.hasGun)h.ammo=Infinity;
   enterGameUI();
   if(NET.mode==='host')netHostStarted();
@@ -2044,9 +2083,9 @@ function enterGameUI(){
   $('menu').hidden=true;$('result').hidden=true;$('pause').hidden=true;$('hud').hidden=false;$('touch').hidden=!isMobile();
   resetJoy();clearTapGoal();$('tFire').hidden=true;document.body.classList.remove('aiming');
   feedEl.innerHTML='';renderKeyHints();
-  $('hMode').textContent={sod:'STEAL OR DIE',tag:'TAG WAR',infection:'INFECTION',spy:"WHO'S SPY"}[G.mode];
+  $('hMode').textContent={sod:'STEAL OR DIE',tag:'TAG WAR',infection:'INFECTION',spy:"WHO'S SPY",pretender:"WHO'S PRETENDER"}[G.mode];
   $('hTeam').hidden=G.mode!=='infection';
-  const intro={sod:['BLEND IN','偷東西、裝 NPC，別成為最低分'],spy:["WHO'S SPY",`你們都是間諜，混在 NPC 之中。${Math.round(G.timeLeft/60)} 分鐘內多偷、或開槍除掉對手`],tag:[G.player.role==='thief'?'你是小偷':'你是守衛',G.player.role==='thief'?'時間結束時還是小偷就贏':'找出偽裝的小偷，抓到就互換身分'],infection:[G.player.role==='thief'?'你是小偷':'你是守衛',G.player.role==='thief'?`和其他小偷一起偷滿 ${G.quota} 分`:'揪出小偷，射中就會感染他']};
+  const intro={sod:['BLEND IN','偷東西、裝 NPC，別成為最低分'],spy:["WHO'S SPY",`你們都是間諜，混在 NPC 之中。${Math.round(G.timeLeft/60)} 分鐘內多偷、或開槍除掉對手`],tag:[G.player.role==='thief'?'你是小偷':'你是守衛',G.player.role==='thief'?'時間結束時還是小偷就贏':'找出偽裝的小偷，抓到就互換身分'],infection:[G.player.role==='thief'?'你是小偷':'你是守衛',G.player.role==='thief'?`和其他小偷一起偷滿 ${G.quota} 分`:'揪出小偷，射中就會感染他'],pretender:[G.player.role==='guard'?'你是巡捕者':'你是物品組',G.player.role==='guard'?`${Math.round(PT.hide)} 秒後出動：找出偽裝成物品的玩家，打錯會扣血`:'你已變成一件物品：找個好位置擺好，別被認出來']};
   big(intro[G.mode][0],intro[G.mode][1],2600);
   updateHudStatic();
   if(isMobile()){
@@ -2085,7 +2124,7 @@ document.querySelectorAll('.fs-btn').forEach(b=>b.addEventListener('click',()=>{
 document.addEventListener('fullscreenchange',syncCtrlUI);
 function endGame(kind){
   if(G.over)return;G.over=true;G.running=false;
-  const rows=humans().map(a=>[a.idx,a.name,a.role==='guard'?1:0,a.score,a.alive?1:0,a.fate||'']);
+  const rows=humans().map(a=>[a.idx,a.name,a.role==='guard'?1:0,G.mode==='pretender'?Math.max(0,Math.round(a.hp||0)):a.score,a.alive?1:0,a.fate||'']);
   if(NET.mode==='host'){NET.res={k:kind,rows};hostSend();}
   showResults(kind,G.player.idx,rows);
 }
@@ -2111,6 +2150,11 @@ function showResults(kind,meIdx,rows){
       else{cls='lose';title=alive?'時間到，你沒贏':'你出局了';lead=(alive?'存活者中':'')+(wn?`最高分是 ${wn}（${top} 分）。`:'')+(!alive&&fate?` ${fate}。`:'');}
     }
   }
+  if(G.mode==='pretender'){
+    const sw=kind==='seekers',mine=role==='guard'?sw:!sw;cls=mine?'win':'lose';
+    title=sw?'巡捕者獲勝':'物品組獲勝';
+    lead=(sw?'所有偽裝成物品的玩家都被找出來了。':(kind==='props'?'巡捕者全部倒下了，沒人能再搜捕。':'時間到，還有物品組玩家沒被找到。'))+(mine?' 你站在勝利的一方。':' 你站在輸的一方。');
+  }
   if(G.mode==='tag'){if(role==='thief'){title='時間到，你是小偷';lead='最後一刻握在手上的身分才算數。你贏了。';}else{cls='lose';title='時間到，你是守衛';lead='最後那一抓沒能換回來。';}}
   if(G.mode==='infection'){
     const thievesWin=kind==='thieves';const mine=role==='thief'?thievesWin:!thievesWin;
@@ -2124,8 +2168,8 @@ function showResults(kind,meIdx,rows){
     const tr=document.createElement('tr');if(r[0]===meIdx)tr.className='me';
     const c1=document.createElement('td');const sw=document.createElement('span');sw.className='sw';sw.style.background=ag?ag.char.look.shirt:'#888';c1.appendChild(sw);
     c1.append(r[0]===meIdx?(NET.mode?`你（${cleanName(r[1])}）`:'你'):cleanName(r[1]));
-    const c2=document.createElement('td');c2.textContent=r[2]?'守衛':'小偷';
-    const c3=document.createElement('td');c3.className='num';c3.textContent=r[3];
+    const c2=document.createElement('td');c2.textContent=G.mode==='pretender'?(r[2]?'巡捕者':'物品組'):(r[2]?'守衛':'小偷');
+    const c3=document.createElement('td');c3.className='num';c3.textContent=G.mode==='pretender'?r[3]+' HP':r[3];
     const c4=document.createElement('td');c4.textContent=r[4]?(G.mode==='tag'?(r[2]?'落敗':'獲勝'):'存活'):String(r[5]||'');
     tr.append(c1,c2,c3,c4);body.appendChild(tr);
   }
@@ -2161,7 +2205,7 @@ function steal(a,l){
   if(!l.alive)return;l.alive=false;l.obj.visible=false;l.respawnAt=G.t+rand(40,60);
   burst(l.pos);
   if(a.kind!=='npc'){a.score+=l.value;if(G.mode==='infection'&&a.role==='thief')G.teamLoot+=l.value;
-    if(a.ch==='young'){a.starAcc=(a.starAcc||0)+l.value;while(a.starAcc>=8){a.starAcc-=8;if(a.hasGun&&a.ammo!==Infinity&&a.ammo<6){a.ammo++;note(a,'累計偷滿 8 顆星　+1 發子彈','info');if(a===G.player)updateHudStatic();}}}}
+    if(a.ch==='young'){a.starAcc=(a.starAcc||0)+l.value;while(a.starAcc>=8){a.starAcc-=8;if(a.hasGun&&a.ammo!==Infinity&&a.ammo<AMMO_MAX){a.ammo++;note(a,'累計偷滿 8 顆星　+1 發子彈','info');if(a===G.player)updateHudStatic();}}}}
   if(a===G.player){sfx('steal');feed(`偷到 ${l.name}　+${l.value}`);G.heat+=.5;}else sfx('pop',l.pos);
   if(NET.mode==='host'&&a.kind==='remote')netEv(['sl',a.idx]);
   witnessTheft(l,a);
@@ -2202,6 +2246,7 @@ function botFire(b){
   const dir=new THREE.Vector3(Math.sin(b.yaw),0,Math.cos(b.yaw));tracer(from,from.clone().addScaledVector(dir,10).add(new THREE.Vector3(rand(-1,1),rand(-.5,.5),rand(-1,1))),b);
 }
 function hit(shooter,t){
+  if(G.mode==='pretender'){pretenderHit(shooter,t);return;}
   if(t.shield>0&&t.alive){sfx('clang',t.pos);return;}
   if(t.ch==='kimo'&&t.vest>0&&t.alive){t.vest--;if(t.vest===0)t.skillCD=PASSIVE_CD.kimo;kimoHurt(t);return;}
   if(t.kind==='npc'){
@@ -2263,6 +2308,8 @@ function tag(g,t){
 }
 function checkEnd(){
   if(G.over)return;
+  if(G.mode==='pretender'){const hs=humans(),sk=hs.some(h=>h.role==='guard'&&h.alive),pr=hs.some(h=>h.role==='thief'&&h.alive);
+    if(!pr)endGame('seekers');else if(!sk)endGame('props');return;}
   if(gunMode()&&aliveHumans().length<=1)endGame('last');
   else if(NET.mode&&gunMode()&&!G.agents.some(a=>(a.kind==='player'||a.kind==='remote')&&a.alive))endGame('last');
 }
@@ -2280,17 +2327,171 @@ function smokeUpdate(dt){
   for(let i=puffs.length-1;i>=0;i--){const q=puffs[i];q.t-=dt;q.m.position.addScaledVector(q.v,dt);q.v.multiplyScalar(Math.exp(-dt*3));const k=1-q.t/.6;q.m.scale.setScalar(.6+k*1.5);q.m.material.opacity=clamp(q.t/.6,0,1)*.7;
     if(q.t<=0){scene.remove(q.m);q.m.material.dispose();puffs.splice(i,1);}}
 }
+function thanosSnap(a){
+  const c=G.agents.filter(o=>o.kind==='npc'&&o.alive);
+  for(let i=0;i<2&&c.length;i++){const t=c.splice(Math.floor(Math.random()*c.length),1)[0];
+    kill(t,'灰飛煙滅');burst(new THREE.Vector3(t.pos.x,1,t.pos.z),18);}
+  sfx('snap',a.pos);
+}
+function shanClones(a){
+  if(G.mode==='pretender'){decoyClones(a);return;}
+  for(const sd of[-1,1]){
+    const px=a.pos.x+Math.cos(a.yaw)*sd*1.1,pz=a.pos.z-Math.sin(a.yaw)*sd*1.1;
+    const p=walkable(px,pz)?new THREE.Vector3(px,0,pz):nearestFree(px,pz);
+    const c=makeAgent('npc',p,a.lookIdx.slice(),'');c.yaw=a.yaw;c.clone=true;c.waitT=rand(0,1.5);
+    smokePuff(p);if(NET.mode==='host')netEv(['sm',r1(p.x),r1(p.z),a.idx]);
+  }
+}
+function skillUsable(a){return G.mode!=='pretender'||pretenderSkillOK(a);}
 function doDisguise(a){reskin(a);for(const o of G.agents){if(o.sus)o.sus.delete(a.id);}a.sus.clear();a.mark=0;}
 function useSkill(a){
-  if(!a.alive||!hasSkill(a.ch)||a.skillCD>0||a.invis>0||a.swapT>0||a.phaseT>0||a.shield>0||a.stun>0)return false;
+  if(!a.alive||!hasSkill(a.ch)||!skillUsable(a)||a.skillCD>0||a.invis>0||a.swapT>0||a.phaseT>0||a.shield>0||a.stun>0)return false;
   a.skillCD=SKILL_CHARS[a.ch];a.mark=0;
+  if(G.mode==='pretender'&&a.role==='thief'&&a.ch==='joseph'){rerollProp(a);return true;}
+  if(a.ch==='thanos'){a.stun=.5;a.castT=.5;emit(a,4);return true;}
   if(a.ch==='ray'){a.phaseT=1;return true;}
   if(a.ch==='shifu'){a.shield=2;return true;}
-  if(a.ch==='steve')a.invis=INVIS_T;else a.swapT=.3;smokePuff(a.pos);
-  if(NET.mode==='host')netEv(['sm',r1(a.pos.x),r1(a.pos.z),a.idx]);
+  if(a.ch==='steve')a.invis=INVIS_T;else a.swapT=.3;
+  if(!(G.mode==='pretender'&&a.role==='thief')){smokePuff(a.pos);if(NET.mode==='host')netEv(['sm',r1(a.pos.x),r1(a.pos.z),a.idx]);}
   return true;
 }
 
+// ================= Who's Pretender =================
+const PT={hp:100,hurtProp:34,missCost:15,regenWait:20,regenStep:.3,reroll:45,hide:15,speed:3.4*3.5,jumpV:5.6,grav:12};
+// which character skills make sense for each team in this mode (props can't run / seekers have no NPC to snap ...)
+const PRETENDER_OK={thief:['steve','joseph','ray','shifu','kimo','shan'],guard:['steve','joseph','ray','judy','tom','ashley']};
+function pretenderSkillOK(a){return PRETENDER_OK[a.role==='guard'?'guard':'thief'].includes(a.ch);}
+const PM=new Map();let propPool=[];
+function propModel(idx){
+  let m=PM.get(idx);if(m!==undefined)return m;
+  const l=loot[idx];if(!l){PM.set(idx,null);return null;}
+  const src=l.obj,hs=l.homeScale||src.scale;let sc=hs.x,q=src.parent;while(q){sc*=q.scale.x;q=q.parent;}
+  const c=src.clone(true);c.visible=true;c.position.set(0,0,0);c.scale.set(1,1,1);c.rotation.set(src.rotation.x,0,src.rotation.z);
+  const w=new THREE.Group();w.add(c);w.scale.setScalar(sc);w.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(w),sz=new THREE.Vector3();b.getSize(sz);
+  c.position.set(-(b.min.x+b.max.x)/2/sc,-b.min.y/sc,-(b.min.z+b.max.z)/2/sc);
+  const mx=Math.max(sz.x,sz.y,sz.z);
+  m={tmpl:w,w:sz.x,d:sz.z,h:sz.y,ok:mx>=.25&&sz.y>=.15&&sz.x<=2.2&&sz.z<=2.2&&sz.y<=2.4&&Math.min(sz.x,sz.z)>=.08};
+  PM.set(idx,m);return m;
+}
+function buildPropPool(){PM.clear();propPool=[];for(let i=0;i<loot.length;i++){const m=propModel(i);if(m&&m.ok)propPool.push(i);}if(!propPool.length)for(let i=0;i<loot.length;i++)propPool.push(i);}
+const FP_PTS=[[0,0],[1,1],[-1,1],[1,-1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]];
+function footOK(x,z,yaw,hw,hd){
+  const c=Math.cos(yaw),s=Math.sin(yaw);
+  for(const[lx,lz]of FP_PTS){const ax=lx*hw,az=lz*hd;if(!pwalk(x+ax*c+az*s,z-ax*s+az*c))return false;}
+  return true;
+}
+function setProp(a,idx){
+  a.propIdx=idx;const m=propModel(idx);
+  if(m){a.propHW=Math.max(.15,m.w/2);a.propHD=Math.max(.15,m.d/2);a.propH=m.h;a.propR=Math.hypot(a.propHW,a.propHD)*.8;}
+  if(a.propObj){scene.remove(a.propObj);a.propObj=null;}
+}
+function pickPropFor(a,avoid){
+  for(let k=0;k<24;k++){const idx=propPool[Math.floor(Math.random()*propPool.length)];if(idx===avoid&&propPool.length>1)continue;const m=propModel(idx);if(!m)continue;
+    if(a.phaseT>0||footOK(a.pos.x,a.pos.z,a.yaw,Math.max(.15,m.w/2),Math.max(.15,m.d/2)))return idx;}
+  let best=avoid,bs=1e9;for(const idx of propPool){const m=propModel(idx);if(m&&m.w*m.d<bs){bs=m.w*m.d;best=idx;}}
+  return best;
+}
+function rerollProp(a){setProp(a,pickPropFor(a,a.propIdx));a.propT=PT.reroll;}
+function unstickProp(a){
+  if(footOK(a.pos.x,a.pos.z,a.yaw,a.propHW||.2,a.propHD||.2))return;
+  for(let r=.2;r<3;r+=.2)for(let k=0;k<12;k++){const an=k/12*Math.PI*2,x=a.pos.x+Math.cos(an)*r,z=a.pos.z+Math.sin(an)*r;
+    if(footOK(x,z,a.yaw,a.propHW||.2,a.propHD||.2)){a.pos.x=x;a.pos.z=z;return;}}
+  const f=nearestFree(a.pos.x,a.pos.z);a.pos.x=f.x;a.pos.z=f.z;
+}
+function decoyClones(a){
+  if(a.role!=='thief'||a.propIdx==null||a.propIdx<0)return;
+  for(let n=0;n<2;n++){
+    let px=a.pos.x,pz=a.pos.z,ok=false;
+    for(let k=0;k<30&&!ok;k++){const an=rand(0,Math.PI*2),r=rand(1.1+(a.propR||.3),3.2);px=a.pos.x+Math.cos(an)*r;pz=a.pos.z+Math.sin(an)*r;
+      ok=footOK(px,pz,a.yaw,a.propHW||.2,a.propHD||.2)&&reachable(px,pz);}
+    if(!ok){px=a.pos.x;pz=a.pos.z;const f=nearestFree(px+rand(-2,2),pz+rand(-2,2));px=f.x;pz=f.z;}
+    const c=makeAgent('npc',new THREE.Vector3(px,0,pz),a.lookIdx.slice(),'');c.clone=true;c.decoy=true;c.role='thief';c.yaw=a.yaw+rand(-.4,.4);setProp(c,a.propIdx);c.propT=0;
+  }
+}
+function pKill(a,fate){
+  if(!a.alive)return;a.alive=false;a.invis=0;a.fate=fate;a.path=null;a.gunState='none';a.hp=Math.max(0,a.hp||0);
+  if(a===G.player){big('你出局了',fate,2600,true);gunOut=false;document.body.classList.remove('aiming');$('tFire').hidden=true;feed(isMobile()?'可以按「視角」鈕自由觀戰':'可以按 V 鍵自由觀戰到這局結束','info');updateHudStatic();}
+  else bigFor(a,'你出局了',fate,true);
+  feedAll(`${a.name} 出局了（${a.role==='guard'?'巡捕者':'物品組'}）`,'bad');
+  burst(new THREE.Vector3(a.pos.x,.8,a.pos.z),20);
+  checkEnd();
+}
+function pretenderMiss(s,msg){
+  if(!s||!s.alive||s.role!=='guard')return;
+  s.hp-=PT.missCost;s.lastHurt=G.t;s.regenT=0;
+  note(s,(msg||'沒有打中任何玩家')+`　血量 −${PT.missCost}`,'bad');
+  if(s===G.player)selfHurt();else if(s.kind==='remote')netEv(['kh',s.idx]);
+  if(s.hp<=0){s.hp=0;pKill(s,'血量耗盡，無法繼續搜捕');}
+}
+function pretenderHit(sh,t){
+  if(!t||!t.alive)return;
+  const real=t.kind!=='npc'&&t.role==='thief';
+  if(!real){
+    if(t.kind==='npc'){kill(t,'');burst(new THREE.Vector3(t.pos.x,.6,t.pos.z),10);pretenderMiss(sh,'那只是一個普通物品（或分身）');}
+    else pretenderMiss(sh,'打到自己人了');
+    return;
+  }
+  if(t.shield>0){sfx('clang',t.pos);return;}
+  if(t.ch==='kimo'&&t.vest>0){t.vest--;if(t.vest===0)t.skillCD=PASSIVE_CD.kimo;kimoHurt(t);return;}
+  t.hp-=PT.hurtProp;t.lastHurt=G.t;t.regenT=0;sfx('squish',t.pos);
+  if(t===G.player)selfHurt();else if(t.kind==='remote')netEv(['kh',t.idx]);
+  note(sh,`命中！${t.name} 就是物品組玩家`,'info');
+  if(t.hp<=0){t.hp=0;sh.score++;pKill(t,`被 ${sh.name} 找到了`);}
+}
+function pretenderTick(dt){
+  if(G.hideT>0){G.hideT-=dt;if(G.hideT<=0){G.hideT=0;bigAll('搜捕開始','巡捕者出動，物品組別被認出來',false);}}
+  else{G.timeLeft-=dt;if(G.timeLeft<=0&&!G.over){const hs=humans();endGame(hs.some(h=>h.role==='thief'&&h.alive)?'time':'seekers');return;}}
+  for(const a of G.agents){
+    if(a.kind==='npc'||!a.alive)continue;
+    if(a.role==='thief'){a.propT-=dt;if(a.propT<=0)rerollProp(a);}
+    if(a.hp<PT.hp&&G.t-(a.lastHurt||-99)>=PT.regenWait){a.regenT=(a.regenT||0)+dt;while(a.regenT>=PT.regenStep){a.regenT-=PT.regenStep;a.hp=Math.min(PT.hp,a.hp+1);}}else a.regenT=0;
+  }
+}
+// ---- player-side prop control ----
+let jumpReq=false,rotL=false,rotR=false;
+const propMode=()=>G.mode==='pretender'&&G.player&&G.player.alive&&G.player.role==='thief';
+function togglePropView(){
+  const p=G.player;if(!p||G.mode!=='pretender'||!G.running)return;
+  if(!(p.role==='thief'||!p.alive))return;
+  G.viewing=!G.viewing;
+  if(G.viewing){camTarget.set(p.pos.x,Math.max(1.5,camTarget.y),p.pos.z);feed(isMobile()?'全圖視角：用左下方按鈕平移與升降，再按一次「視角」回到自己':'全圖視角：方向鍵／WASD 平移、空白鍵／Shift 升降，再按 V 回到自己','info');}
+  else feed('回到自己的視角','info');
+}
+function propUpdate(dt){
+  const p=G.player;
+  if(p.stun>0){p.stun-=dt;p.speedNow=0;return;}
+  // jump physics always run
+  if(jumpReq){jumpReq=false;if((p.jy||0)<=.001&&!G.viewing){p.jv=PT.jumpV;}}
+  if((p.jy||0)>0||p.jv>0){p.jv-=PT.grav*dt;p.jy=Math.max(0,(p.jy||0)+p.jv*dt);if(p.jy<=0){p.jy=0;p.jv=0;}}
+  if(G.viewing){p.speedNow=0;return;}
+  let ix=0,iz=0;
+  if(keys.has('KeyW')||keys.has('ArrowUp'))iz+=1;if(keys.has('KeyS')||keys.has('ArrowDown'))iz-=1;
+  if(keys.has('KeyA')||keys.has('ArrowLeft'))ix-=1;if(keys.has('KeyD')||keys.has('ArrowRight'))ix+=1;
+  if(joy.active){ix=joy.x;iz=-joy.y;}
+  const fx=-Math.sin(camYaw),fz=-Math.cos(camYaw),rx=Math.cos(camYaw),rz=-Math.sin(camYaw);
+  let mx=fx*iz+rx*ix,mz=fz*iz+rz*ix;let ml=Math.hypot(mx,mz);let viaPath=false;
+  if(ml<=.15&&p.tapPath){const q=p.tapPath[p.tapPi];
+    if(q){const dx=q.x-p.pos.x,dz=q.z-p.pos.z,d=Math.hypot(dx,dz);if(d<.3)p.tapPi++;else{mx=dx;mz=dz;ml=d;viaPath=true;}}
+    else{p.tapPath=null;tapRing.visible=false;}}
+  else if(ml>.15&&p.tapPath)clearTapGoal();
+  const hw=p.propHW||.2,hd=p.propHD||.2,ph=p.phaseT>0;
+  // turn in place (never into a wall)
+  const turn=((keys.has(KEYB.act)||rotR)?1:0)-((keys.has(KEYB.gun)||rotL)?1:0);
+  if(turn){const ny=p.yaw+turn*2.6*dt;if(ph||footOK(p.pos.x,p.pos.z,ny,hw,hd))p.yaw=ny;}
+  let sp=0;
+  if(ml>.15){
+    mx/=ml;mz/=ml;sp=PT.speed*(viaPath?1:Math.min(1,ml));
+    const n=Math.max(1,Math.ceil(sp*dt/.1)),dx=mx*sp*dt/n,dz=mz*sp*dt/n;
+    for(let i=0;i<n;i++){
+      const nx=p.pos.x+dx,nz=p.pos.z+dz;
+      if(ph){p.pos.x=clamp(nx,MAPB.x0,MAPB.x1);p.pos.z=clamp(nz,MAPB.z0,MAPB.z1);continue;}
+      if(footOK(nx,p.pos.z,p.yaw,hw,hd))p.pos.x=nx;
+      if(footOK(p.pos.x,nz,p.yaw,hw,hd))p.pos.z=nz;
+    }
+  }
+  p.speedNow=sp;
+}
 // ================= particles =================
 const bursts=[];const confGeo=new THREE.PlaneGeometry(.07,.07);
 const confMats=['#ff4a3d','#ffd34a','#4ad6ff','#ffffff'].map(c=>new THREE.MeshBasicMaterial({color:c,side:THREE.DoubleSide,transparent:true}));
@@ -2385,7 +2586,8 @@ function botThink(b){ // called at perception rate
     }else b.near.set(o.id,0);
   }
   b.best=best;b.bestV=bv;
-  if(hasSkill(b.ch)&&b.ch!=='ray'&&b.skillCD<=0&&b.invis<=0&&b.swapT<=0&&b.shield<=0&&b.stun<=0&&b.gunState==='none'&&(b.threat||bv>1.15)){useSkill(b);const f=b.threat||best;if(f&&f.alive)fleeFrom(b,f);return;}
+  if(b.ch==='thanos'&&b.skillCD<=0&&b.stun<=0&&Math.random()<.015){useSkill(b);return;}
+  if(hasSkill(b.ch)&&b.ch!=='ray'&&b.ch!=='thanos'&&b.skillCD<=0&&b.invis<=0&&b.swapT<=0&&b.shield<=0&&b.stun<=0&&b.gunState==='none'&&(b.threat||bv>1.15)){useSkill(b);const f=b.threat||best;if(f&&f.alive)fleeFrom(b,f);return;}
   if(b.stun>0||b.gunState!=='none')return;
   // modes
   if(G.mode==='sod'||(G.mode==='infection'&&b.role==='guard')){
@@ -2433,6 +2635,12 @@ function keyName(c){if(/^Key[A-Z]$/.test(c))return c.slice(3);if(/^Digit\d$/.tes
 function renderKeyHints(){
   const h=$('hKeys');if(!h)return;const p=G.player,knife=p&&p.ch==='bob',k=x=>`<kbd>${keyName(KEYB[x])}</kbd>`;
   const sk=p&&hasSkill(p.ch);
+  if(G.mode==='pretender'&&p){
+    const ok=sk&&pretenderSkillOK(p),skl=ok?`<span>${k('skill')}技能</span>`:'';
+    h.innerHTML=(p.role==='thief'
+      ?`<span><kbd>WASD</kbd>移動</span><span>${k('gun')}/${k('act')}轉向</span><span><kbd>Space</kbd>跳</span><span><kbd>V</kbd>全圖視角</span>`
+      :`<span><kbd>WASD</kbd>走路</span><span>${k('run')}奔跑</span><span><kbd>右鍵</kbd>/${k('gun')}拔槍</span><span><kbd>左鍵</kbd>開火</span>`)+skl+`<span><kbd>Esc</kbd>暫停</span>`;
+    return;}
   h.innerHTML=`<span><kbd>WASD</kbd>走路</span><span>${k('run')}奔跑</span><span>${k('act')}偷 / 抓</span><span><kbd>右鍵</kbd>/${k('gun')}${knife?'拔刀':'拔槍'}</span><span><kbd>左鍵</kbd>${knife?'刺':'開火'}</span><span>${k('mark')}標記嫌疑</span>`+(sk?`<span>${k('skill')}技能</span>`:'')+`<span><kbd>Esc</kbd>暫停</span>`;
 }
 addEventListener('keydown',e=>{
@@ -2442,6 +2650,8 @@ addEventListener('keydown',e=>{
   if(e.code===KEYB.gun)toggleGun();
   if(e.code===KEYB.mark)markLooked();
   if(e.code===KEYB.skill)playerSkill();
+  if(e.code==='Space'&&propMode()){e.preventDefault();jumpReq=true;}
+  if(e.code==='KeyV')togglePropView();
   if(e.code==='Escape'&&!G.paused)togglePause(true);
   if(e.code==='KeyP')togglePause();
   if(e.code==='Space'&&gunOut){e.preventDefault();playerShoot();}
@@ -2482,7 +2692,7 @@ cv.addEventListener('touchstart',e=>{if(editing)return;
       info.role='joy';joy.active=true;joy.id=t.identifier;joy.ox=t.clientX;joy.oy=t.clientY;placeJoy(t.clientX,t.clientY);joyEl.classList.add('live');
     }
     if(info.role==='look'&&G.running)info.lp=setTimeout(()=>{
-      if(info.moved<12&&info.role==='look'&&G.running&&!G.paused){const a=pickAgentRay(rayAt(info.x,info.y),.5,45);if(a){a.mark=(a.mark+1)%4;buzz(18);info.role='done';feed(a.mark?['','標記：有點可疑','標記：很可疑','標記：幾乎確定是玩家'][a.mark]:'已清除標記','info');}}
+      if(info.moved<12&&info.role==='look'&&G.running&&!G.paused&&G.mode!=='pretender'){const a=pickAgentRay(rayAt(info.x,info.y),.5,45);if(a){a.mark=(a.mark+1)%4;buzz(18);info.role='done';feed(a.mark?['','標記：有點可疑','標記：很可疑','標記：幾乎確定是玩家'][a.mark]:'已清除標記','info');}}
     },520);
     touches.set(t.identifier,info);
   }
@@ -2529,7 +2739,7 @@ function handleTap(x,y){
   if(gunOut){const a=pickAgentRay(r,.6);playerShoot(a,r);return;}
   if(CTRL!=='tap')return;
   if(G.mode==='tag'&&p.role==='guard'){const a=pickAgentRay(r,.55,30);if(a){clearTapGoal();p.tapChase=a;p.tapRe=0;setPlayerPath(a.pos);showRing(a.pos);return;}}
-  if(p.role==='thief'&&G.mode!=='tag'){const l=pickLootAt(x,y);if(l){clearTapGoal();p.tapLoot=l;setPlayerPath(l.stand);showRing(l.stand);buzz(8);return;}}
+  if(p.role==='thief'&&G.mode!=='tag'&&G.mode!=='pretender'){const l=pickLootAt(x,y);if(l){clearTapGoal();p.tapLoot=l;setPlayerPath(l.stand);showRing(l.stand);buzz(8);return;}}
   const pt=floorAt(r);if(!pt)return;
   const now=performance.now();const dbl=now-lastTapT<330&&pt.distanceTo(lastTapPt)<2.5;lastTapT=now;lastTapPt.copy(pt);
   clearTapGoal();p.tapRun=dbl||touchRun;const dst=nearestFree(pt.x,pt.z);setPlayerPath(dst);showRing(dst);
@@ -2539,11 +2749,11 @@ tapRing.rotation.x=-Math.PI/2;tapRing.visible=false;tapRing.userData.t=0;scene.a
 
 let editing=false;
 const press=(id,down,up)=>{const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();if(editing)return;audioInit();down&&down();});if(up){const u=e=>{if(editing)return;up(e);};el.addEventListener('pointerup',u);el.addEventListener('pointercancel',u);el.addEventListener('pointerleave',u);}};
-press('tRun',()=>{touchRun=!touchRun;$('tRun').classList.toggle('on',touchRun);});
-press('tAct',()=>{holdE=true;teddyArm();buzz(10);},()=>{holdE=false;});
-press('tGun',()=>toggleGun());
+press('tRun',()=>{if(propMode()){rotR=true;return;}touchRun=!touchRun;$('tRun').classList.toggle('on',touchRun);},()=>{rotR=false;});
+press('tAct',()=>{if(G.mode==='pretender'){if(propMode()){jumpReq=true;buzz(10);}return;}holdE=true;teddyArm();buzz(10);},()=>{holdE=false;});
+press('tGun',()=>{if(propMode()){rotL=true;return;}toggleGun();},()=>{rotL=false;});
 press('tFire',()=>{if(gunOut)playerShoot();});
-press('tMark',()=>markLooked());
+press('tMark',()=>{if(G.mode==='pretender'){togglePropView();return;}markLooked();});
 press('tSkill',()=>playerSkill());
 press('tPause',()=>togglePause());
 
@@ -2562,21 +2772,24 @@ function pickAgentRay(r,tol=.36,maxD=30){
     const t=((a.pos.x-ro.x)*rd.x+(a.pos.z-ro.z)*rd.z)/l2;if(t<0||t>maxD)continue;
     const px=ro.x+rd.x*t,py=ro.y+rd.y*t,pz=ro.z+rd.z*t;
     const off=Math.hypot(px-a.pos.x,pz-a.pos.z);
-    if(off<tol&&py>-.2&&py<2.4){const score=t+off*6;if(score<bt){bt=score;best=a;}}}
+    const tl=a.propIdx>=0?Math.max(tol,a.propR||.3):tol,top=a.propIdx>=0?(a.propH||1)+(a.jy||0)+.3:2.4;
+    if(off<tl&&py>-.2&&py<top){const score=t+off*6;if(score<bt){bt=score;best=a;}}}
   if(best&&G.player&&!los(G.player.pos.x,G.player.pos.z,best.pos.x,best.pos.z))return null;
   return best;
 }
 const pickAgent=(maxD=30)=>pickAgentRay(centerRay(),isMobile()?.55:.36,maxD);
 function playerShoot(tapTarget,tapRay){
   const p=G.player;if(!p||!p.alive||!gunOut||p.shootCD>0||p.stun>0)return;
+  if(G.mode==='pretender'&&G.hideT>0){feed('搜捕準備中，還不能開槍','info');return;}
   if(p.ch==='bob'){playerStab(tapTarget);return;}
   if(gunMode()){if(p.ammo<=0){feed('沒有子彈了','bad');return;}p.ammo--;}
-  p.shootCD=gunMode()?.45:1.2;if(p.ch!=='ashley')sfx('shot');emit(p,5);buzz(35);
+  p.shootCD=gunMode()?.45:(G.mode==='pretender'?.5:1.2);if(p.ch!=='ashley')sfx('shot');emit(p,5);buzz(35);
+  if(G.mode==='pretender'){p.lastHurt=G.t;p.regenT=0;}
   const target=tapTarget!==undefined?tapTarget:pickAgent();const from=muzzle(p);
   if(target){p.yaw=Math.atan2(target.pos.x-p.pos.x,target.pos.z-p.pos.z);tracer(from,target.pos.clone().setY(1.3),p);if(NET.mode==='client')netAct(['f',target.idx,0,0]);else hit(p,target);}
   else{const r=tapRay||centerRay();const end=r.origin.clone().addScaledVector(r.direction,25);
     const n=60;for(let i=1;i<=n;i++){const q=r.origin.clone().addScaledVector(r.direction,25*i/n);const gx=cx_(q.x),gz=cz_(q.z);if(!inb(gx,gz)||opaque[gz*GW+gx]||q.y<0){end.copy(q);break;}}
-    tracer(from,end,p);if(NET.mode==='client')netAct(['f',-1,r1(end.x),r1(end.z)]);}
+    tracer(from,end,p);if(NET.mode==='client')netAct(['f',-1,r1(end.x),r1(end.z)]);else if(G.mode==='pretender')pretenderMiss(p);}
   updateHudStatic();
 }
 function playerStab(tapTarget){
@@ -2591,11 +2804,11 @@ function playerStab(tapTarget){
 }
 function teddyArm(){const p=G.player;if(p&&p.ch==='teddy'&&G.focusLoot&&p.role==='thief'&&!gunOut&&G.mode!=='tag')p.autoSteal=G.focusLoot;}
 function playerSkill(){
-  const p=G.player;if(!p||!p.alive||!hasSkill(p.ch)||p.skillCD>0||p.invis>0||p.swapT>0||p.phaseT>0||p.shield>0||p.stun>0||G.paused||!G.running)return;
-  if(NET.mode==='client'){p.skillCD=SKILL_CHARS[p.ch];p.mark=0;if(p.ch==='steve')p.invis=INVIS_T;if(p.ch==='ray')p.phaseT=1;if(p.ch==='shifu')p.shield=2;if(p.ch==='steve'||p.ch==='joseph')smokePuff(p.pos);netAct(['k']);buzz(25);return;}
+  const p=G.player;if(!p||!p.alive||!hasSkill(p.ch)||!skillUsable(p)||p.skillCD>0||p.invis>0||p.swapT>0||p.phaseT>0||p.shield>0||p.stun>0||G.paused||!G.running)return;
+  if(NET.mode==='client'){p.skillCD=SKILL_CHARS[p.ch];p.mark=0;if(p.ch==='steve')p.invis=INVIS_T;if(p.ch==='ray')p.phaseT=1;if(p.ch==='shifu')p.shield=2;if((p.ch==='steve'||p.ch==='joseph'||p.ch==='shan')&&!(G.mode==='pretender'&&p.role==='thief'))smokePuff(p.pos);if(p.ch==='thanos')p.stun=.5;netAct(['k']);buzz(25);return;}
   if(useSkill(p))buzz(25);
 }
-function markLooked(){const a=pickAgent(40);if(!a){feed(isMobile()?'準星沒有對準任何人（也可以長按角色標記）':'準星沒有對準任何人','info');return;}a.mark=(a.mark+1)%4;buzz(12);}
+function markLooked(){if(G.mode==='pretender')return;const a=pickAgent(40);if(!a){feed(isMobile()?'準星沒有對準任何人（也可以長按角色標記）':'準星沒有對準任何人','info');return;}a.mark=(a.mark+1)%4;buzz(12);}
 
 function togglePause(force){
   if(NET.mode){if(!G.running)return;const open=force===true||$('pause').hidden;$('pause').hidden=!open;$('btnRestart').hidden=true;$('btnQuit').textContent='離開房間';
@@ -2611,6 +2824,10 @@ let lastMoveDirs=[],stopStarts=[],wasMoving=false;
 function playerUpdate(dt){
   const p=G.player;if(!p.alive)return;
   p.shootCD-=dt;p.tagCD-=dt;
+  if(G.mode==='pretender'){
+    if(p.role==='thief'){propUpdate(dt);return;}
+    if(G.hideT>0){p.speedNow=0;return;}
+  }
   if(p.stun>0){p.stun-=dt;p.speedNow=0;holdE=false;return;}
   let ix=0,iz=0;
   if(keys.has('KeyW')||keys.has('ArrowUp'))iz+=1;if(keys.has('KeyS')||keys.has('ArrowDown'))iz-=1;
@@ -2676,7 +2893,7 @@ function updateLabels(){
     tmpV.copy(a.pos);tmpV.y=a.alive?2.35:.9;tmpV.project(camera);
     if(tmpV.z>1){el.style.display='none';continue;}
     el.style.display='';el.style.left=((tmpV.x+1)/2*innerWidth)+'px';el.style.top=((1-tmpV.y)/2*innerHeight)+'px';
-    if(show==='reveal'){el.className='tag3d reveal'+(a===G.player?' me':'')+(a.alive?'':' dead');el.textContent=(a===G.player?'你':a.name)+(!gunMode()?(a.role==='guard'?' · 守衛':' · 小偷'):'')+` · ${a.score}`;}
+    if(show==='reveal'){el.className='tag3d reveal'+(a===G.player?' me':'')+(a.alive?'':' dead');el.textContent=(a===G.player?'你':a.name)+(G.mode==='pretender'?(a.role==='guard'?' · 巡捕者':' · 物品組'):(!gunMode()?(a.role==='guard'?' · 守衛':' · 小偷'):''))+(G.mode==='pretender'?'':` · ${a.score}`);}
     else{el.className='mark3d';el.textContent='';const c=['','#ffd34a','#ff9a3d','#ff4a3d'][a.mark];el.style.background=c;el.style.color=c;}
   }
 }
@@ -2689,15 +2906,17 @@ function big(t,sub='',ms=2000,red=false){const el=$('hBig');el.innerHTML='';el.a
 const fmtT=s=>{s=Math.max(0,Math.ceil(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
 function updateHudStatic(){
   const p=G.player;if(!p)return;
-  const r=$('hRole');r.className='role '+p.role;r.innerHTML=p.role==='guard'?'<b>守衛</b><span>GUARD</span>':'<b>小偷</b><span>THIEF</span>';
+  const r=$('hRole');const pt=G.mode==='pretender';r.className='role '+p.role;r.innerHTML=pt?(p.role==='guard'?'<b>巡捕者</b><span>SEEKER</span>':'<b>物品組</b><span>PROP</span>'):(p.role==='guard'?'<b>守衛</b><span>GUARD</span>':'<b>小偷</b><span>THIEF</span>');
+  $('hSkDesc').textContent=(BRIEF[p.ch]||'')+(G.mode==='pretender'&&G.running&&!pretenderSkillOK(p)&&p.ch!=='bob'?'（本模式此角色技能不適用）':'');
   const knife=p.ch==='bob';$('hChar').textContent=p.ch&&CHARS[p.ch]?CHARS[p.ch].name:'—';$('hAmmoLbl').textContent=knife?'隱藏小刀':'隱藏手槍';
-  $('tGun').textContent=knife?'拔刀':'拔槍';$('tFire').textContent=knife?'刺':'開火';
+  const prop=pt&&p.role==='thief'&&p.alive,seek=pt&&p.role==='guard'&&p.alive;
+  $('tGun').textContent=prop?'↶':(knife?'拔刀':'拔槍');$('tFire').textContent=knife?'刺':'開火';$('tRun').textContent=prop?'↷':'跑';$('tMark').textContent=pt?'視角':'標記';$('tMark').hidden=seek;$('tAct').hidden=seek;$('hHpRow').hidden=!pt;
   const hs0=hasSkill(p.ch),hp0=hasPassive(p.ch);$('hSkillRow').hidden=!(hs0||hp0);$('tSkill').hidden=!(hs0||hp0);$('tSkill').classList.toggle('psv',hp0);
   $('hSkillLbl').textContent=hs0?'技能':'被動冷卻';$('hSkillKey').hidden=!hs0;
-  $('hAmmoRow').hidden=!p.hasGun;$('tGun').hidden=!p.hasGun;$('tFire').hidden=!p.hasGun;
-  if(p.hasGun){$('hAmmo').innerHTML=p.ammo===Infinity?'<strong style="font:600 13px var(--f-mono)">∞</strong>':Array.from({length:6},(_,i)=>`<i class="${i<p.ammo?'':'off'}"></i>`).join('');}
-  $('hScoreRow').hidden=G.mode==='tag';
-  $('hAliveLbl').textContent=gunMode()?'存活玩家':(G.mode==='tag'?'小偷 / 守衛':'小偷 / 守衛');
+  $('hAmmoRow').hidden=!p.hasGun||pt;$('tGun').hidden=prop?false:!p.hasGun;$('tFire').hidden=!p.hasGun;
+  if(p.hasGun){$('hAmmo').innerHTML=p.ammo===Infinity?'<strong style="font:600 13px var(--f-mono)">∞</strong>':Array.from({length:AMMO_MAX},(_,i)=>`<i class="${i<p.ammo?'':'off'}"></i>`).join('');}
+  $('hScoreRow').hidden=G.mode==='tag'||pt;
+  $('hAliveLbl').textContent=gunMode()?'存活玩家':(pt?'巡捕者 / 物品組':'小偷 / 守衛');
   if(!p.hasGun&&gunOut){gunOut=false;p.gunState='none';}
 }
 let lastTick=-1;
@@ -2720,12 +2939,19 @@ function updateHud(){
     $('tSkillRing').style.strokeDashoffset=cls==='cool'?201*(1-cd/tot):(cls==='on'?(boost?201*(1-p.boostT/15):0):0);
   }
   const hs=aliveHumans();
-  $('hAlive').textContent=gunMode()?`${hs.length} / ${G.nPlayers}`:`${hs.filter(h=>h.role==='thief').length} / ${hs.filter(h=>h.role==='guard').length}`;
+  if(G.mode==='pretender'){const hh=humans();$('hAlive').textContent=`${hh.filter(h=>h.role==='guard'&&h.alive).length} / ${hh.filter(h=>h.role==='thief'&&h.alive).length}`;$('hHp').style.width=clamp(p.hp||0,0,100)+'%';$('hHpN').textContent=Math.round(p.hp||0);}
+  else $('hAlive').textContent=gunMode()?`${hs.length} / ${G.nPlayers}`:`${hs.filter(h=>h.role==='thief').length} / ${hs.filter(h=>h.role==='guard').length}`;
   const tm=$('hTimer');
   if(G.mode==='sod'){tm.textContent=fmtT(G.nextElim);$('hSub').textContent=`第 ${G.round} 輪 · 距離下一次淘汰`;tm.classList.toggle('calm',G.nextElim>15);}
+  else if(G.mode==='pretender'){
+    if(G.hideT>0){tm.textContent=Math.ceil(G.hideT);$('hSub').textContent=p.role==='guard'?'搜捕準備中：暫時不能動、不能開槍':'躲藏時間：快擺好位置';tm.classList.remove('calm');}
+    else{tm.textContent=fmtT(G.timeLeft);$('hSub').textContent=p.role==='guard'?'時間到前找出所有物品組玩家':'撐到時間結束，別被找到';tm.classList.toggle('calm',G.timeLeft>20);}}
   else{tm.textContent=fmtT(G.timeLeft);$('hSub').textContent=G.mode==='tag'?'時間結束時是小偷就贏':G.mode==='spy'?'活到最後，或存活者中偷得最多':'小偷偷滿配額前撐住';tm.classList.toggle('calm',G.timeLeft>20);}
   const left=G.mode==='sod'?G.nextElim:G.timeLeft;const s=Math.ceil(left);if(left<=5&&s!==lastTick&&s>0){lastTick=s;sfx('tick');}
   if(G.mode==='infection'){$('hTeamFill').style.width=clamp(G.teamLoot/G.quota*100,0,100)+'%';$('hTeamLbl').textContent=`小偷團隊戰利品 ${G.teamLoot} / ${G.quota}`;}
+  {const pc=$('hPropCd');const show=G.mode==='pretender'&&p.role==='thief'&&p.alive&&p.propT>0&&p.propT<=3;
+   if(show){const sec=Math.ceil(p.propT);pc.hidden=false;pc.textContent='變身倒數 '+sec;if(G.lastPropSec!==sec){G.lastPropSec=sec;const h=$('hurt');h.classList.remove('on');void h.offsetWidth;h.classList.add('on');sfx('tick');}}
+   else{pc.hidden=true;G.lastPropSec=0;}}
   $('hHeat').style.setProperty('--h',clamp(G.heat/3*100,0,100)+'%');
   fx.uniforms.uDanger.value=lerp(fx.uniforms.uDanger.value,clamp((G.heat-1.5)/2,0,.6),.05);
   // prompt
@@ -2735,6 +2961,7 @@ function updateHud(){
     if(G.mode==='tag'){txt=p.role==='guard'?'抓':'—';sub=p.role==='guard'?(p.tagCD>0?Math.ceil(p.tagCD)+' 秒':'靠近對方'):'混進人群';if(G.focusAgent&&p.tagCD<=0){mode='ready';sub='按一下';}}
     else if(p.role==='guard'){txt='—';sub='用槍揪人';}
     else if(G.focusLoot&&!gunOut){mode='ready';sub=p.autoSteal?'偷取中':'按住';}
+    if(G.mode==='pretender'){if(p.role==='thief'&&p.alive){mode='ready';txt='跳';sub='';}else{mode='idle';txt='—';sub='';}}
     ab.className=mode;lbl.firstChild.nodeValue=txt;lbl.querySelector('small').textContent=sub;
     $('tActRing').style.strokeDashoffset=282.7*(1-stealProg);}
   if(G.focusLoot&&!gunOut){pr.hidden=false;$('hKey').textContent=mob?'偷':keyName(KEYB.act);$('hPromptTxt').innerHTML='';$('hPromptTxt').append(`按住偷取 ${G.focusLoot.name} `);const v=document.createElement('span');v.className='val';v.textContent='★'.repeat(G.focusLoot.value);$('hPromptTxt').appendChild(v);$('hRing').style.strokeDashoffset=94.2*(1-stealProg);}
@@ -2756,7 +2983,10 @@ function updateCamera(dt){
     const p=G.player;target=new THREE.Vector3(p.pos.x,gunOut?1.9:1.45,p.pos.z);
     if(gunOut){const rx=Math.cos(camYaw),rz=-Math.sin(camYaw);target.x+=rx*.55;target.z+=rz*.55;}
   }else if(G.viewing){target=camTarget.clone();
-    let ix=0,iz=0;if(keys.has('KeyW'))iz++;if(keys.has('KeyS'))iz--;if(keys.has('KeyA'))ix--;if(keys.has('KeyD'))ix++;
+    let ix=0,iz=0,iy=0;const K=(...c)=>c.some(k=>keys.has(k));
+    if(K('KeyW','ArrowUp'))iz++;if(K('KeyS','ArrowDown'))iz--;if(K('KeyA','ArrowLeft'))ix--;if(K('KeyD','ArrowRight'))ix++;
+    if(K('Space','PageUp','KeyE'))iy++;if(K('ShiftLeft','ShiftRight','PageDown','KeyQ'))iy--;
+    target.y=clamp(target.y+iy*dt*6,.4,16);
     target.x+=(-Math.sin(camYaw)*iz+Math.cos(camYaw)*ix)*dt*8;target.z+=(-Math.cos(camYaw)*iz-Math.sin(camYaw)*ix)*dt*8;
     target.x=clamp(target.x,MAPB.x0+.5,MAPB.x1-.5);target.z=clamp(target.z,MAPB.z0+.5,MAPB.z1-.5);
   }else{camYaw+=dt*.04;target=new THREE.Vector3(Math.sin(G.t*.03)*4,1,Math.cos(G.t*.03)*2);}
@@ -2764,7 +2994,7 @@ function updateCamera(dt){
   if(isMobile()&&G.running&&!G.paused&&G.player&&G.player.speedNow>.5&&!gunOut&&![...touches.values()].some(i=>(i.role==='look'&&i.moved>8)||i.role==='pinch')){
     camYaw+=angDiff(camYaw,G.player.yaw+Math.PI)*(1-Math.exp(-dt*(CTRL==='tap'?1.6:.9)));}
   if(tapRing.visible){tapRing.userData.t+=dt;const k=1+Math.sin(tapRing.userData.t*6)*.12;tapRing.scale.set(k,k,k);}
-  const dist=G.running?(gunOut?3:camDist):(G.viewing?13:22);const pitch=G.running?camPitch:(G.viewing?.85:.72);
+  const dist=G.viewing?Math.max(13,camDist):(G.running?(gunOut?3:camDist):22);const pitch=G.running?camPitch:(G.viewing?.85:.72);
   camera.position.set(camTarget.x+Math.sin(camYaw)*Math.cos(pitch)*dist,camTarget.y+Math.sin(pitch)*dist,camTarget.z+Math.cos(camYaw)*Math.cos(pitch)*dist);
   camera.lookAt(camTarget);
   const baseFov=camera.aspect<1?72:(camera.aspect<1.5?62:55);
@@ -2802,7 +3032,7 @@ function bigAll(t,s,red){big(t,s,2400,red);netEv(['bg',-1,t,s||'',red?1:0]);}
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej('net');document.head.appendChild(s);});}
 function roomTransport(nr){
   let cb=()=>{};const off=nr.onPeers(()=>cb());
-  const KEYS=['r','n','ph','cfg','setup','snap','ev','st','a','res','c','bye','sel'];
+  const KEYS=['r','n','ph','cfg','setup','snap','ev','st','a','res','c','bye','rdy'];
   return {kind:'room',
     setMine(o){const patch={};for(const k of KEYS)patch[k]=o[k]===undefined?null:o[k];nr.presence(patch).catch(()=>{});},
     peers(){return nr.peers().filter(p=>p.kind==='viewer').map(p=>({peer:p.peer,me:p.sameTab,st:p.presence||{}}));},
@@ -2883,8 +3113,19 @@ function openMP(){$('mp').hidden=false;$('mpEntry').hidden=false;$('mpLobby').hi
 function mpMsg(t){$('mpMsg').textContent=t||'';}
 function mpBusy(b,t){$('mpHost').disabled=b;$('mpJoin').disabled=b;if(t)mpMsg(t);}
 function showLobby(){$('mp').hidden=false;$('menu').hidden=true;$('mpEntry').hidden=true;$('mpLobby').hidden=false;$('lbCode').textContent=NET.code;
-  $('lbNet').textContent=NET.kind==='room'?'Claude 即時房間':'PeerJS 直連';renderLobby();
-  if(!NET.charPicked){NET.charPicked=true;openChars(()=>renderLobby(),'確定');}}
+  $('lbNet').textContent=NET.kind==='room'?'Claude 即時房間':'PeerJS 直連';renderLobby();}
+// host presses start -> everybody picks a character -> game begins once all confirmed
+function hostBeginPick(){
+  if(NET.mode!=='host'||NET.picking)return;
+  if((G.mode==='spy'||G.mode==='pretender')&&NET.ro.length+1<2){lobbyHint((G.mode==='spy'?'Who\'s SPY':'Who\'s Pretender')+' 至少需要 2 位真人玩家');return;}
+  NET.pkId=(NET.pkId||0)+1;NET.picking=true;NET.pkT0=performance.now();NET.hostRdy=false;
+  openChars(()=>{NET.hostRdy=true;renderLobby();},'確定，進場',true);renderLobby();hostSend();
+}
+function hostPickCheck(guests){
+  if(!NET.picking||!NET.hostRdy)return;
+  const allRdy=NET.ro.every(r=>{const g=guests.find(x=>x.peer===r[0]);return g&&g.st.rdy===NET.pkId;});
+  if(allRdy||performance.now()-NET.pkT0>60000){NET.picking=false;$('chars').hidden=true;$('mp').hidden=true;NET.total=Math.max(NET.total,NET.ro.length+1);startGame();}
+}
 function lobbyMembers(){
   if(NET.mode==='host')return [[myPeer(),NET.name,1,G.char],...NET.ro.map(r=>[r[0],r[1],0,r[2]])];
   const h=hostOf(NET.tr.peers());if(!h||!h.st.cfg)return [];
@@ -2899,18 +3140,19 @@ function renderLobby(){
     if(isHost){const s=document.createElement('span');s.className='tagpill';s.textContent='主辦';li.appendChild(s);}
     if(peer===me){const s=document.createElement('span');s.className='tagpill me';s.textContent='你';li.appendChild(s);}list.appendChild(li);}
   const cfg=host?{mode:G.mode,total:NET.total,dur:NET.dur}:((hostOf(NET.tr.peers())||{st:{}}).st.cfg||{mode:'sod',total:6,dur:4});
-  const spy=cfg.mode==='spy';$('lbDurRow').hidden=!spy;$('lbTotalRow').hidden=spy;
+  const spy=cfg.mode==='spy'||cfg.mode==='pretender';$('lbDurRow').hidden=!spy;$('lbTotalRow').hidden=spy;
   document.querySelectorAll('#lbDur button').forEach(b=>{b.setAttribute('aria-pressed',+b.dataset.d===(cfg.dur||4)?'true':'false');b.disabled=!host;});
   const total=Math.max(cfg.total||2,mem.length);
   $('lbHostCtl').hidden=false;
-  document.querySelectorAll('#lbMode button').forEach(b=>{if(b.dataset.m==='pretender'||b.dataset.m==='party'){b.disabled=true;return;}b.setAttribute('aria-pressed',b.dataset.m===cfg.mode?'true':'false');b.disabled=!host;});
+  document.querySelectorAll('#lbMode button').forEach(b=>{if(b.dataset.m==='party'){b.disabled=true;return;}b.setAttribute('aria-pressed',b.dataset.m===cfg.mode?'true':'false');b.disabled=!host;});
   if(!host&&cfg.map&&(cfg.map==='random'||MAPS[cfg.map])&&cfg.map!==G.map){G.map=cfg.map;G.mapRes=null;syncMapUI();setupMenuScene();}
   document.querySelectorAll('#lbMap button').forEach(b=>b.disabled=!host);
   $('lbChar').textContent='角色：'+chName(G.char)+'（更換）';
   $('lbMinus').disabled=!host;$('lbPlus').disabled=!host;$('lbTotal').textContent=total+' 人';
   const bots=total-mem.length;$('lbBots').textContent=spy?'':(bots>0?`其中 ${bots} 位由電腦扮演`:'全部都是真人');
   $('lbStart').hidden=!host;
-  {const wait=host?(NET.selN||0)+($('chars').hidden?0:1):0;$('lbStart').disabled=wait>0;$('lbStart').textContent=wait>0?`等待 ${wait} 位玩家選角…`:'開始遊戲';}
+  {let wait=0;if(host&&NET.picking){const gs=NET.tr.peers();wait=(NET.hostRdy?0:1)+NET.ro.filter(r=>{const g=gs.find(x=>x.peer===r[0]);return !(g&&g.st&&g.st.rdy===NET.pkId);}).length;}
+   $('lbStart').disabled=!!NET.picking;$('lbStart').textContent=NET.picking?`等待 ${wait} 位玩家選角…`:'開始遊戲';}
   $('lbWait').hidden=host||!NET.waiting;
   $('lbWait').textContent='這一局已經開始了，等它結束後你就會加入下一局。';
   $('waitBox').hidden=!(host?mem.length<2:!NET.waiting);
@@ -2923,7 +3165,7 @@ document.querySelectorAll('#lbMode button').forEach(b=>b.addEventListener('click
   document.querySelectorAll('.mode').forEach(x=>x.setAttribute('aria-pressed',x.dataset.mode===G.mode?'true':'false'));renderLobby();}));
 $('lbMinus').addEventListener('click',()=>{if(NET.mode!=='host')return;NET.total=clamp(NET.total-1,Math.max(2,NET.ro.length+1),8);renderLobby();});
 $('lbPlus').addEventListener('click',()=>{if(NET.mode!=='host')return;NET.total=clamp(NET.total+1,2,8);renderLobby();});
-$('lbStart').addEventListener('click',()=>{if(NET.mode!=='host')return;NET.total=Math.max(NET.total,NET.ro.length+1);$('mp').hidden=true;startGame();});
+$('lbStart').addEventListener('click',hostBeginPick);
 $('lbLeave').addEventListener('click',()=>{netLeave();toMenu();});
 $('btnMP').addEventListener('click',openMP);
 $('mpClose').addEventListener('click',()=>{$('mp').hidden=true;});
@@ -2948,13 +3190,14 @@ function agentFlags(a){return (a.reachT>0||(a===G.player&&a.reachFlag)?1:0)|(a.g
 const enc=new TextEncoder();
 function hostSend(){
   if(NET.mode!=='host'||!NET.tr)return;
-  const cfg={code:NET.code,mode:G.mode,total:NET.total,dur:NET.dur,ro:NET.ro,host:NET.name,map:G.map,hc:G.char};
+  const cfg={code:NET.code,mode:G.mode,total:NET.total,dur:NET.dur,ro:NET.ro,host:NET.name,map:G.map,hc:G.char,pk:NET.picking?NET.pkId:0};
   if(NET.phase==='lobby'){NET.tr.setMine({r:'host',n:NET.name,ph:'lobby',cfg});return;}
   const T=Math.PI*2;
-  const snap={t:[r1(G.nextElim),G.timeLeft===Infinity?-1:r1(G.timeLeft),G.round,G.teamLoot,G.quota],
+  const snap={t:[r1(G.nextElim),G.timeLeft===Infinity?-1:r1(G.timeLeft),G.round,G.teamLoot,G.quota,r1(G.hideT||0)],
     a:G.agents.map(a=>[r1(a.pos.x),r1(a.pos.z),Math.round((((a.yaw%T)+T)%T)*100),r1(a.speedNow||0),agentFlags(a)]),
-    h:G.agents.filter(a=>a.kind!=='npc').map(a=>[a.idx,a.score,a.role==='guard'?1:0,a.hasGun?(a.ammo===Infinity?-1:a.ammo):-2,a.alive?1:0,Math.round(Math.max(0,a.stun)*10),Math.round(Math.max(0,a.skillCD||0)*10)]),
-    l:lootMask(),rk:G.agents.filter(a=>a.reskinned).map(a=>[a.idx,...a.lookIdx])};
+    h:G.agents.filter(a=>a.kind!=='npc').map(a=>[a.idx,a.score,a.role==='guard'?1:0,a.hasGun?(a.ammo===Infinity?-1:a.ammo):-2,a.alive?1:0,Math.round(Math.max(0,a.stun)*10),Math.round(Math.max(0,a.skillCD||0)*10),Math.round(a.hp||0)]),
+    pp:G.agents.filter(a=>a.propIdx>=0).map(a=>[a.idx,a.propIdx,Math.round((a.jy||0)*20),Math.round(Math.max(0,a.propT||0)*10)]),
+    l:lootMask(),rk:G.agents.filter(a=>a.reskinned).map(a=>[a.idx,...a.lookIdx]),cl:G.agents.filter(a=>a.clone).map(a=>[a.idx,...a.lookIdx])};
   const st={r:'host',n:NET.name,ph:G.over?'over':'game',cfg,setup:NET.setup,snap,ev:NET.evBuf.slice(),res:NET.res};
   while(enc.encode(JSON.stringify(st)).length>3900&&st.ev.length)st.ev.shift();
   NET.tr.setMine(st);
@@ -2964,14 +3207,14 @@ function hostReadPeers(){
   if(NET.phase==='lobby'&&!G.running&&!G.over){
     const guests=ps.filter(p=>!p.me&&p.st&&p.st.r==='guest'&&!p.st.bye);
     NET.order=NET.order.filter(pe=>guests.some(g=>g.peer===pe));for(const g of guests)if(!NET.order.includes(g.peer))NET.order.push(g.peer);
-    NET.selN=guests.filter(g=>g.st.sel).length;
     NET.ro=NET.order.slice(0,7).map(pe=>{const st=guests.find(x=>x.peer===pe).st;return [pe,cleanName(st.n),(st.c==='random'||CHARS[st.c])?st.c:'ashley'];});
     NET.total=Math.max(NET.total,Math.min(8,NET.ro.length+1));
+    hostPickCheck(guests);
     return;
   }
   for(const p of ps){
     if(p.me||!p.st||p.st.r!=='guest')continue;const a=NET.peerAgent.get(p.peer);if(!a)continue;a.netSeen=G.t;
-    const s=p.st.st;if(Array.isArray(s)&&s.length>=5){a.tx=+s[0]/10||0;a.tz=+s[1]/10||0;a.tyaw=+s[2]/100||0;a.netSpd=clamp(+s[3]/10||0,0,4);a.netFl=s[4]|0;}
+    const s=p.st.st;if(Array.isArray(s)&&s.length>=5){a.tx=+s[0]/10||0;a.tz=+s[1]/10||0;a.tyaw=+s[2]/100||0;a.netSpd=clamp(+s[3]/10||0,0,14);a.netFl=s[4]|0;if(s.length>5)a.tjy=clamp((+s[5]||0)/20,0,3);}
     if(Array.isArray(p.st.a)&&G.running&&a.alive)for(const act of p.st.a){if(Array.isArray(act)&&act[0]>(a.lastAct||0)){a.lastAct=act[0];applyRemoteAct(a,act);}}
   }
   if(G.running&&!G.over){
@@ -2985,7 +3228,7 @@ function remoteStep(a,dt){
   if(a.tx===undefined)return;
   const ox=a.pos.x,oz=a.pos.z,k=1-Math.exp(-dt*14);
   if(Math.hypot(a.tx-a.pos.x,a.tz-a.pos.z)>5){a.pos.x=a.tx;a.pos.z=a.tz;}else{a.pos.x+=(a.tx-a.pos.x)*k;a.pos.z+=(a.tz-a.pos.z)*k;}
-  a.yaw+=angDiff(a.yaw,a.tyaw)*k;a.speedNow=a.netSpd||0;
+  a.yaw+=angDiff(a.yaw,a.tyaw)*k;a.speedNow=a.netSpd||0;if(a.tjy!==undefined)a.jy=(a.jy||0)+(a.tjy-(a.jy||0))*k;
   const fl=a.netFl||0;a.reachT=fl&1?.2:0;const gun=!!(fl&2)&&a.hasGun;
   if(gun&&a.gunState==='none'){emit(a,2.6);NET.curBy=a.idx;sfx('click',a.pos);NET.curBy=-1;}
   a.gunState=gun?'aim':'none';if(gun)emit(a,.4*dt);
@@ -2996,16 +3239,17 @@ function remoteStep(a,dt){
 function applyRemoteAct(a,act){
   const type=act[1];NET.curBy=a.idx;
   try{
-    if(type==='s'){const l=loot[act[2]|0];if(l&&l.alive&&a.role==='thief'&&G.mode!=='tag'&&a.stun<=0&&Math.hypot(l.pos.x-a.pos.x,l.pos.z-a.pos.z)<3.1)steal(a,l);}
+    if(type==='s'){const l=loot[act[2]|0];if(l&&l.alive&&a.role==='thief'&&G.mode!=='tag'&&G.mode!=='pretender'&&a.stun<=0&&Math.hypot(l.pos.x-a.pos.x,l.pos.z-a.pos.z)<3.1)steal(a,l);}
     else if(type==='f'){
-      if(!a.hasGun||a.shootCD>0||a.stun>0)return;
+      if(!a.hasGun||a.shootCD>0||a.stun>0||(G.mode==='pretender'&&G.hideT>0))return;
       if(a.ch==='bob'){a.shootCD=.8;a.stabT=.35;sfx('slash',a.pos);emit(a,5);netEv(['st',a.idx]);
         const t0=act[2]>=0?G.agents[act[2]|0]:null;if(t0&&t0!==a&&t0.alive&&t0.pos.distanceTo(a.pos)<KNIFE_REACH+.9)hit(a,t0);return;}
       if(gunMode()){if(a.ammo<=0)return;a.ammo--;}
-      a.shootCD=gunMode()?.4:1.1;if(a.ch!=='ashley')sfx('shot',a.pos);emit(a,5);
+      a.shootCD=gunMode()?.4:(G.mode==='pretender'?.45:1.1);if(a.ch!=='ashley')sfx('shot',a.pos);emit(a,5);
+      if(G.mode==='pretender'){a.lastHurt=G.t;a.regenT=0;}
       const from=muzzle(a),t=act[2]>=0?G.agents[act[2]|0]:null;
       if(t&&t!==a&&t.alive&&t.pos.distanceTo(a.pos)<32&&los(a.pos.x,a.pos.z,t.pos.x,t.pos.z)){tracer(from,t.pos.clone().setY(1.3),a);hit(a,t);}
-      else tracer(from,new THREE.Vector3((+act[3]||0)/10,1.2,(+act[4]||0)/10),a);
+      else{tracer(from,new THREE.Vector3((+act[3]||0)/10,1.2,(+act[4]||0)/10),a);if(G.mode==='pretender')pretenderMiss(a);}
     }
     else if(type==='k'){useSkill(a);}
     else if(type==='t'){const t=G.agents[act[2]|0];if(t&&t!==a&&t.alive&&G.mode==='tag'&&a.role==='guard'&&a.tagCD<=0&&a.stun<=0&&t.pos.distanceTo(a.pos)<2.3)tag(a,t);}
@@ -3015,8 +3259,8 @@ function applyRemoteAct(a,act){
 // ---------- guest ----------
 function netAct(arr){NET.actId++;NET.acts.push([NET.actId,...arr]);if(NET.acts.length>6)NET.acts.shift();}
 function clientSend(){
-  const p=G.player,st={r:'guest',n:NET.name,c:G.char};if(!$('chars').hidden)st.sel=1;
-  if(NET.curG&&p){const T=Math.PI*2;st.st=[r1(p.pos.x),r1(p.pos.z),Math.round((((p.yaw%T)+T)%T)*100),r1(p.speedNow||0),(p.reachFlag?1:0)|(gunOut?2:0)];st.a=NET.acts.slice();}
+  const p=G.player,st={r:'guest',n:NET.name,c:G.char};if(NET.rdy)st.rdy=NET.rdy;
+  if(NET.curG&&p){const T=Math.PI*2;st.st=[r1(p.pos.x),r1(p.pos.z),Math.round((((p.yaw%T)+T)%T)*100),r1(p.speedNow||0),(p.reachFlag?1:0)|(gunOut?2:0),Math.round((p.jy||0)*20)];st.a=NET.acts.slice();}
   NET.tr.setMine(st);
 }
 function clientPoll(dt){
@@ -3024,7 +3268,11 @@ function clientPoll(dt){
   if(!h){NET.hostMissT+=dt;if(NET.hostMissT>(NET.curG?3:5))leaveWithNotice();return;}
   NET.hostMissT=0;const st=h.st;
   if(st.ph==='abort'){if(performance.now()-(NET.joinT||0)>1500)leaveWithNotice();return;}
-  if(st.ph==='lobby'){NET.waiting=false;if(NET.curG)clientToLobby();else if(!$('mpLobby').hidden)renderLobbyThrottled();return;}
+  if(st.ph==='lobby'){NET.waiting=false;
+    const pk=(st.cfg&&st.cfg.pk)|0;
+    if(pk&&NET.pkSeen!==pk&&!NET.curG){NET.pkSeen=pk;NET.rdy=0;if(st.cfg.mode==='pretender'&&G.char==='bob')G.char='ashley';openChars(()=>{NET.rdy=pk;},'確定，進場',true);}
+    if(!pk&&NET.pkSeen){NET.pkSeen=0;NET.rdy=0;if(!$('chars').hidden)$('chars').hidden=true;}
+    if(NET.curG)clientToLobby();else if(!$('mpLobby').hidden)renderLobbyThrottled();return;}
   const s=st.setup;if(!s)return;
   if(s.g!==NET.curG){
     if(s.g===NET.dismissedG){NET.waiting=true;renderLobbyThrottled();return;}
@@ -3040,6 +3288,7 @@ let lobbyT=0;function renderLobbyThrottled(){const n=performance.now();if(n-lobb
 function clientStartGame(s,snap,myIdx){
   G.mapRes=MAPS[s.map]?s.map:'news';smokeEm.length=0;
   clearAgents();loadMap(G.mapRes);resetLoot();
+  $('chars').hidden=true;chOkCb=null;NET.pkSeen=0;NET.rdy=0;
   G.mode=s.mode;NET.curG=s.g;NET.lastEv=0;NET.shownRes=false;NET.acts=[];NET.lastSnap=null;
   const A=snap&&snap.a||[];
   for(let i=0;i<s.k.length;i++){
@@ -3057,12 +3306,18 @@ function clientStartGame(s,snap,myIdx){
   enterGameUI();
 }
 function applySnap(s){
-  const t=s.t||[];G.nextElim=(t[0]||0)/10;G.timeLeft=t[1]<0?Infinity:(t[1]||0)/10;G.round=t[2]||1;G.teamLoot=t[3]||0;G.quota=t[4]||0;
+  const A0=s.a||[];
+  if(A0.length>G.agents.length){const cl=new Map((s.cl||[]).map(r=>[r[0],r.slice(1,9)]));
+    while(G.agents.length<A0.length){const i=G.agents.length,v=A0[i]||[0,0,0];
+      const a=makeAgent('npc',new THREE.Vector3(v[0]/10,0,v[1]/10),cl.get(i)||null,'');a.clone=true;a.tx=v[0]/10;a.tz=v[1]/10;a.tyaw=v[2]/100;a.yaw=a.tyaw;}}
+  const t=s.t||[];G.nextElim=(t[0]||0)/10;G.timeLeft=t[1]<0?Infinity:(t[1]||0)/10;G.round=t[2]||1;G.teamLoot=t[3]||0;G.quota=t[4]||0;G.hideT=(t[5]||0)/10;
   (s.a||[]).forEach((v,i)=>{const a=G.agents[i];if(!a||!Array.isArray(v))return;
     if(a!==G.player){a.tx=v[0]/10;a.tz=v[1]/10;a.tyaw=v[2]/100;a.speedNow=v[3]/10;a.reachT=v[4]&1?.3:0;a.gunState=v[4]&2?'aim':'none';a.invis=v[4]&16?Math.max(a.invis,.4):0;a.phaseT=v[4]&32?Math.max(a.phaseT,.4):0;a.shield=v[4]&64?Math.max(a.shield,.4):0;}
     if((v[4]&4)&&a.alive&&a!==G.player)a.alive=false;
     if((v[4]&8)&&!a.vanished){a.vanished=true;a.vanish=1;a.alive=false;}
   });
+  for(const r of s.pp||[]){const a=G.agents[r[0]];if(!a)continue;
+    if(a.propIdx!==r[1])setProp(a,r[1]);if(a!==G.player)a.jyT=r[2]/20;a.propT=r[3]/10;}
   for(const r of s.rk||[]){const a=G.agents[r[0]];if(!a)continue;const li=r.slice(1);if(li.join()!==a.lookIdx.join())reskin(a,li);}
   let changed=false;
   for(const h of s.h||[]){const a=G.agents[h[0]];if(!a)continue;
@@ -3074,6 +3329,7 @@ function applySnap(s){
       a.stun=Math.max(a.stun>0?a.stun:0,(h[5]||0)/10);
       a.skillCD=Math.max(a.skillCD||0,(h[6]||0)/10);
     }else if(!h[4])a.alive=false;
+    if(h[7]!==undefined)a.hp=h[7];
   }
   if(changed){updateHudStatic();if(gunOut&&!G.player.hasGun)toggleGun();}
   if(typeof s.l==='string'){const now=performance.now();
@@ -3106,6 +3362,7 @@ function clientStep(dt){
     if(Math.hypot(a.tx-a.pos.x,a.tz-a.pos.z)>4){a.pos.x=a.tx;a.pos.z=a.tz;}else{a.pos.x+=(a.tx-a.pos.x)*k;a.pos.z+=(a.tz-a.pos.z)*k;}
     a.yaw+=angDiff(a.yaw,a.tyaw)*k;
   }
+  for(const a of G.agents){if(a!==G.player&&a.jyT!==undefined)a.jy=(a.jy||0)+(a.jyT-(a.jy||0))*(1-Math.exp(-dt*12));if(a.propT>0)a.propT-=dt;}
   if(G.player&&G.player.stun>0)G.player.stun-=dt;
 }
 function clientToLobby(){
@@ -3153,8 +3410,9 @@ function frame(now){
       if(a.boostT>0){a.boostT-=dt;if(a.boostT<=0){a.boostT=0;a.skillCD=PASSIVE_CD.tom;}}
       if(a.ch==='kimo'&&a.vest===0&&a.skillCD<=0)a.vest=2;
       if(a.shield>0)a.shield-=dt;
-      if(a.phaseT>0){a.phaseT-=dt;if(a.phaseT<=0){a.phaseT=0;if(a===G.player&&!pwalk(a.pos.x,a.pos.z)){const f=nearestFree(a.pos.x,a.pos.z);a.pos.x=f.x;a.pos.z=f.z;}}}
-      if(a.swapT>0){a.swapT-=dt;if(a.swapT<=0&&!(NET.mode==='client'&&NET.curG))doDisguise(a);}}
+      if(a.phaseT>0){a.phaseT-=dt;if(a.phaseT<=0){a.phaseT=0;if(a===G.player&&G.mode==='pretender'&&a.propIdx>=0)unstickProp(a);else if(a===G.player&&!pwalk(a.pos.x,a.pos.z)){const f=nearestFree(a.pos.x,a.pos.z);a.pos.x=f.x;a.pos.z=f.z;}}}
+      if(a.swapT>0){a.swapT-=dt;if(a.swapT<=0&&!(NET.mode==='client'&&NET.curG)){if(a.ch==='shan')shanClones(a);else doDisguise(a);}}
+      if(a.castT>0){a.castT-=dt;if(a.castT<=0){a.castT=0;if(!(NET.mode==='client'&&NET.curG))thanosSnap(a);}}}
     smokeUpdate(dt);
     if(NET.mode==='client'&&NET.curG){clientStep(dt);}else{
     if(G.running&&G.mode==='tag')for(const a of G.agents){if(a.reskinT>0){a.reskinT-=dt;if(a.reskinT<=0){a.reskinT=0;if(a.alive&&a.role==='thief'&&a.kind!=='npc'){reskin(a);note(a,'你換了一身新樣貌，別被認出來','info');}}}}
@@ -3164,11 +3422,11 @@ function frame(now){
       if(a.kind==='bot'&&G.running){a.tagCD-=dt;a.fleeT-=dt;if(a.stalk)stalkStep(a,dt);if(botGun(a,dt))continue;}
       if(a.kind==='bot'&&!G.running&&!G.over){}
       if(G.over&&a.kind!=='npc'&&a.gunState!=='none')a.gunState='none';
-      walkerStep(a,dt);
+      if(!a.decoy)walkerStep(a,dt);
     }
     // separation
     const ag=G.agents;
-    for(let i=0;i<ag.length;i++){const a=ag[i];if(!a.alive)continue;for(let j=i+1;j<ag.length;j++){const b=ag[j];if(!b.alive)continue;
+    if(G.mode!=='pretender')for(let i=0;i<ag.length;i++){const a=ag[i];if(!a.alive)continue;for(let j=i+1;j<ag.length;j++){const b=ag[j];if(!b.alive)continue;
       const dx=b.pos.x-a.pos.x,dz=b.pos.z-a.pos.z,d2=dx*dx+dz*dz;if(d2<.36&&d2>1e-6){const d=Math.sqrt(d2),push=(.6-d)/2,ux=dx/d*push,uz=dz/d*push;
         if(a===G.player?pwalk(a.pos.x-ux,a.pos.z-uz):walkable(a.pos.x-ux,a.pos.z-uz)){a.pos.x-=ux;a.pos.z-=uz;}if(b===G.player?pwalk(b.pos.x+ux,b.pos.z+uz):walkable(b.pos.x+ux,b.pos.z+uz)){b.pos.x+=ux;b.pos.z+=uz;}}}}
     if(G.running){
@@ -3176,6 +3434,7 @@ function frame(now){
       for(const l of loot)if(!l.alive&&G.t>l.respawnAt&&!ag.some(a=>a.alive&&a.pos.distanceTo(l.pos)<2.5)){l.alive=true;l.obj.visible=true;l.obj.scale.setScalar(.01);l.pop=0;}
       // mode timers
       if(G.mode==='sod'){G.nextElim-=dt;if(G.nextElim<=0){G.nextElim=60;const c=aliveHumans();if(c.length>1){const min=Math.min(...c.map(h=>h.score));const low=c.filter(h=>h.score===min);eliminate(pick(low));G.round++;}}}
+      else if(G.mode==='pretender'){pretenderTick(dt);}
       else{G.timeLeft-=dt;
         if((G.mode==='tag'||G.mode==='spy')&&G.timeLeft<=0)endGame('time');
         if(G.mode==='infection'){if(G.teamLoot>=G.quota)endGame('thieves');else if(!aliveHumans().some(h=>h.role==='thief'))endGame('guards');else if(G.timeLeft<=0)endGame('time');}}
@@ -3191,6 +3450,16 @@ function frame(now){
   // character visuals
   for(const a of G.agents){
     const c=a.char;c.root.position.set(a.pos.x,a.hurtT>0&&a===G.player?Math.sin(clamp(1-a.hurtT/.45,0,1)*Math.PI)*.4:0,a.pos.z);c.root.rotation.y=a.yaw;
+    if(G.mode==='pretender'&&a.propIdx>=0){
+      if(a.alive){
+        const m=propModel(a.propIdx);if(m&&!a.propObj){a.propObj=m.tmpl.clone(true);scene.add(a.propObj);}
+        if(a.propObj){a.propObj.visible=!(a.invis>0&&a!==G.player);a.propObj.position.set(a.pos.x,a.jy||0,a.pos.z);a.propObj.rotation.y=a.yaw;}
+        c.root.visible=false;continue;
+      }
+      if(a.propObj){scene.remove(a.propObj);a.propObj=null;}
+      if(a.kind==='npc'){c.root.visible=false;continue;}
+      c.root.visible=true;
+    }
     if(a.vanish){a.vanish-=dt*2;c.root.scale.setScalar(Math.max(.001,a.vanish));if(a.vanish<=0){c.root.visible=false;a.vanish=0;}continue;}
     const inv=a.invis>0&&a.alive&&!G.over;
     const gh=a.phaseT>0&&a.alive;
@@ -3198,7 +3467,9 @@ function frame(now){
     c.setGold(a.shield>0&&a.alive);
     c.update(live?dt:0,a.alive?a.speedNow:0,{dead:!a.alive,reach:a.reachT>0||(a===G.player&&a.reachFlag),gun:a.gunState!=='none'&&a.alive,stab:a.stabT>0?1-a.stabT/.35:0});
   }
+  document.body.classList.toggle('pt',G.mode==='pretender'&&(G.running||G.over));
   updateCamera(dt);
+  {const vp=$('viewPad'),sh=G.viewing&&isMobile();if(vp.hidden===sh)vp.hidden=!sh;}
   if(G.running&&!G.paused)updateHud();
   updateLabels();
   fx.uniforms.uTime.value=G.t;
@@ -3237,7 +3508,7 @@ $('btnAgain').onclick=()=>{if(NET.mode==='client')return;startGame();};
 $('btnLook').onclick=()=>{$('result').hidden=true;G.viewing=true;camTarget.set(G.player.pos.x,1,G.player.pos.z);
   const back=document.createElement('button');back.className='go look-back';back.textContent='結算畫面';back.style.cssText='position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));font-size:18px;padding:10px 18px';
   back.onclick=()=>{G.viewing=false;back.remove();$('result').hidden=false;};document.body.appendChild(back);
-  feed('拖曳旋轉視角，WASD 平移','info');};
+  feed('方向鍵／WASD 平移，空白鍵 ↑、Shift ↓（或 PgUp／PgDn）升降，拖曳旋轉視角','info');};
 // ---------- maps / characters / settings UI ----------
 function renderMapSegs(){
   for(const el of [$('mapSeg'),$('lbMap')]){el.innerHTML='';
@@ -3255,10 +3526,10 @@ function pickMap(id){if(NET.mode==='client'||(id!=='random'&&!MAPS[id])||id===G.
 renderMapSegs();
 
 const RANDOM_CARD={name:'隨機',intro:'不挑了，交給命運：每次開局都會隨機分配一位角色給你。',passive:'開局時才從所有角色中隨機抽出一位，並獲得該角色的被動技能。',note:'所有模式都能使用'};
-let chOkCb=null,chPick=G.char;
+let chOkCb=null,chPick=G.char,chMode='sod';
 function buildChars(){
   const grid=$('chGrid');grid.innerHTML='';
-  for(const id of ['random',...CHAR_IDS]){const c=id==='random'?RANDOM_CARD:CHARS[id],b=document.createElement('button');b.type='button';b.className='char-card'+(id==='random'?' rnd':'');b.setAttribute('role','radio');b.setAttribute('aria-checked',id===chPick?'true':'false');b.dataset.ch=id;
+  for(const id of ['random',...CHAR_IDS.filter(x=>!(chMode==='pretender'&&x==='bob'))]){const c=id==='random'?RANDOM_CARD:CHARS[id],b=document.createElement('button');b.type='button';b.className='char-card'+(id==='random'?' rnd':'');b.setAttribute('role','radio');b.setAttribute('aria-checked',id===chPick?'true':'false');b.dataset.ch=id;
     const cn=document.createElement('div');cn.className='cn';cn.textContent=c.name;
     const ci=document.createElement('p');ci.className='ci';ci.textContent=c.intro;
     const cp=document.createElement('p');cp.className='cp';const em=document.createElement('em');em.textContent='被動技能';cp.appendChild(em);cp.append(c.passive);
@@ -3267,7 +3538,7 @@ function buildChars(){
     b.onclick=()=>{chPick=id;grid.querySelectorAll('.char-card').forEach(x=>x.setAttribute('aria-checked',x.dataset.ch===id?'true':'false'));};
     grid.appendChild(b);}
 }
-function openChars(ok,label){chPick=G.char;buildChars();chOkCb=ok||null;$('chOk').textContent=label||'確定';$('chBack').hidden=false;$('chars').hidden=false;}
+function openChars(ok,label,noBack){const m=NET.mode==='host'?G.mode:(NET.mode==='client'?((hostOf(NET.tr.peers())||{st:{}}).st.cfg||{}).mode:G.mode);chMode=m;if(m==='pretender'&&chPick==='bob'||G.char==='bob'&&m==='pretender')G.char='ashley';chPick=G.char;buildChars();chOkCb=ok||null;$('chOk').textContent=label||'確定';$('chBack').hidden=!!noBack;$('chars').hidden=false;}
 $('chOk').onclick=()=>{G.char=chPick;LS.set('an-char',G.char);$('chars').hidden=true;const f=chOkCb;chOkCb=null;if(f)f();};
 $('chBack').onclick=()=>{$('chars').hidden=true;chOkCb=null;if(NET.mode)renderLobby();};
 $('lbChar').onclick=()=>openChars(()=>renderLobby(),'確定');
@@ -3371,6 +3642,9 @@ $('stKeysReset').onclick=()=>{if(listening)listening.cancel();Object.assign(KEYB
   setTimeout(()=>{if(!done&&iv.currentTime===0&&$('introPlay').hidden)endIntro();},9000);
 }
 gunOut=false;
+document.querySelectorAll('#viewPad button').forEach(b=>{const k=b.dataset.k;
+  b.addEventListener('pointerdown',e=>{e.preventDefault();keys.add(k);});
+  for(const ev of['pointerup','pointercancel','pointerleave'])b.addEventListener(ev,()=>keys.delete(k));});
 applyCtrl();
 setupMenuScene();
 requestAnimationFrame(frame);
